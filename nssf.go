@@ -18,11 +18,11 @@ import (
 	"github.com/urfave/cli"
 
 	"free5gc/src/nssf/logger"
-	"free5gc/src/nssf/nssf_service"
+	"free5gc/src/nssf/service"
 	"free5gc/src/nssf/version"
 )
 
-var NSSF = &nssf_service.NSSF{}
+var NSSF = &service.NSSF{}
 
 var appLog *logrus.Entry
 
