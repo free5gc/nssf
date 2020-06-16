@@ -23,6 +23,8 @@ type Info struct {
 type Configuration struct {
 	NssfName string `yaml:"nssfName,omitempty"`
 
+	ServerIPv4 string `yaml:"serverIPv4,omitempty"`
+
 	Sbi *Sbi `yaml:"sbi"`
 
 	ServiceNameList []models.ServiceName `yaml:"serviceNameList"`

@@ -109,7 +109,7 @@ func (nssf *NSSF) Start() {
 	go handler.Handle()
 
 	self := context.NSSF_Self()
-	addr := fmt.Sprintf("%s:%d", self.HttpIpv4Address, self.Port)
+	addr := fmt.Sprintf("%s:%d", self.ServerIPv4, self.Port)
 
 	// Register to NRF
 	profile, err := consumer.BuildNFProfile(self)
