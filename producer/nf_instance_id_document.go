@@ -25,11 +25,11 @@ func NSSAIAvailabilityDelete(responseChan chan message.HandlerResponseMessage, n
 	logger.Nssaiavailability.Infof("Request received - NSSAIAvailabilityDelete")
 
 	var (
-		status int
-		d      ProblemDetails
+		status         int
+		problemDetails ProblemDetails
 	)
 
-	status = nssaiavailabilityDelete(nfId, &d)
+	status = nssaiavailabilityDelete(nfId, &problemDetails)
 
 	if status == http.StatusNoContent {
 		responseChan <- message.HandlerResponseMessage{
@@ -43,22 +43,22 @@ func NSSAIAvailabilityDelete(responseChan chan message.HandlerResponseMessage, n
 			HttpResponse: &http_wrapper.Response{
 				Header: nil,
 				Status: status,
-				Body:   d,
+				Body:   problemDetails,
 			},
 		}
 	}
 }
 
 // NSSAIAvailabilityPatch - Updates an already existing S-NSSAIs per TA provided by the NF service consumer (e.g AMF)
-func NSSAIAvailabilityPatch(responseChan chan message.HandlerResponseMessage, nfId string, p PatchDocument) {
+func NSSAIAvailabilityPatch(responseChan chan message.HandlerResponseMessage, nfId string, patchDoc PatchDocument) {
 
 	logger.Nssaiavailability.Infof("Request received - NSSAIAvailabilityPatch")
 
 	var (
-		isValidRequest bool = true
-		status         int
-		a              AuthorizedNssaiAvailabilityInfo
-		d              ProblemDetails
+		isValidRequest                  bool = true
+		status                          int
+		authorizedNssaiAvailabilityInfo AuthorizedNssaiAvailabilityInfo
+		problemDetails                  ProblemDetails
 	)
 
 	// TODO: Request NfProfile of NfId from NRF
@@ -67,7 +67,7 @@ func NSSAIAvailabilityPatch(responseChan chan message.HandlerResponseMessage, nf
 	//       If NF consumer is not authorized to update NSSAI availability, return ProblemDetails with code 403 Forbidden
 
 	if isValidRequest {
-		status = nssaiavailabilityPatch(nfId, p, &a, &d)
+		status = nssaiavailabilityPatch(nfId, patchDoc, &authorizedNssaiAvailabilityInfo, &problemDetails)
 	}
 
 	if status == http.StatusOK {
@@ -75,7 +75,7 @@ func NSSAIAvailabilityPatch(responseChan chan message.HandlerResponseMessage, nf
 			HttpResponse: &http_wrapper.Response{
 				Header: nil,
 				Status: status,
-				Body:   a,
+				Body:   authorizedNssaiAvailabilityInfo,
 			},
 		}
 	} else {
@@ -83,22 +83,22 @@ func NSSAIAvailabilityPatch(responseChan chan message.HandlerResponseMessage, nf
 			HttpResponse: &http_wrapper.Response{
 				Header: nil,
 				Status: status,
-				Body:   d,
+				Body:   problemDetails,
 			},
 		}
 	}
 }
 
 // NSSAIAvailabilityPut - Updates/replaces the NSSF with the S-NSSAIs the NF service consumer (e.g AMF) supports per TA
-func NSSAIAvailabilityPut(responseChan chan message.HandlerResponseMessage, nfId string, n NssaiAvailabilityInfo) {
+func NSSAIAvailabilityPut(responseChan chan message.HandlerResponseMessage, nfId string, nssaiAvailabilityInfo NssaiAvailabilityInfo) {
 
 	logger.Nssaiavailability.Infof("Request received - NSSAIAvailabilityPut")
 
 	var (
-		isValidRequest bool = true
-		status         int
-		a              AuthorizedNssaiAvailabilityInfo
-		d              ProblemDetails
+		isValidRequest                  bool = true
+		status                          int
+		authorizedNssaiAvailabilityInfo AuthorizedNssaiAvailabilityInfo
+		problemDetails                  ProblemDetails
 	)
 
 	// TODO: Request NfProfile of NfId from NRF
@@ -107,7 +107,7 @@ func NSSAIAvailabilityPut(responseChan chan message.HandlerResponseMessage, nfId
 	//       If NF consumer is not authorized to update NSSAI availability, return ProblemDetails with code 403 Forbidden
 
 	if isValidRequest {
-		status = nssaiavailabilityPut(nfId, n, &a, &d)
+		status = nssaiavailabilityPut(nfId, nssaiAvailabilityInfo, &authorizedNssaiAvailabilityInfo, &problemDetails)
 	}
 
 	if status == http.StatusOK {
@@ -115,7 +115,7 @@ func NSSAIAvailabilityPut(responseChan chan message.HandlerResponseMessage, nfId
 			HttpResponse: &http_wrapper.Response{
 				Header: nil,
 				Status: status,
-				Body:   a,
+				Body:   authorizedNssaiAvailabilityInfo,
 			},
 		}
 	} else {
@@ -123,7 +123,7 @@ func NSSAIAvailabilityPut(responseChan chan message.HandlerResponseMessage, nfId
 			HttpResponse: &http_wrapper.Response{
 				Header: nil,
 				Status: status,
-				Body:   d,
+				Body:   problemDetails,
 			},
 		}
 	}

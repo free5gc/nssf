@@ -24,11 +24,11 @@ func NSSAIAvailabilityUnsubscribe(responseChan chan message.HandlerResponseMessa
 	logger.Nssaiavailability.Infof("Request received - NSSAIAvailabilityUnsubscribe")
 
 	var (
-		status int
-		d      ProblemDetails
+		status        int
+		problemDetail ProblemDetails
 	)
 
-	status = subscriptionDelete(subscriptionId, &d)
+	status = subscriptionDelete(subscriptionId, &problemDetail)
 
 	if status == http.StatusNoContent {
 		responseChan <- message.HandlerResponseMessage{
@@ -42,7 +42,7 @@ func NSSAIAvailabilityUnsubscribe(responseChan chan message.HandlerResponseMessa
 			HttpResponse: &http_wrapper.Response{
 				Header: nil,
 				Status: status,
-				Body:   d,
+				Body:   problemDetail,
 			},
 		}
 	}

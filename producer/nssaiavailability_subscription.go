@@ -38,13 +38,13 @@ func getUnusedSubscriptionId() (string, error) {
 }
 
 // NSSAIAvailability subscription POST method
-func subscriptionPost(n NssfEventSubscriptionCreateData, s *NssfEventSubscriptionCreatedData, d *ProblemDetails) (status int) {
+func subscriptionPost(createData NssfEventSubscriptionCreateData, createdData *NssfEventSubscriptionCreatedData, problemDetail *ProblemDetails) (status int) {
 	var subscription factory.Subscription
 	tempId, err := getUnusedSubscriptionId()
 	if err != nil {
 		logger.Nssaiavailability.Warnf(err.Error())
 
-		*d = ProblemDetails{
+		*problemDetail = ProblemDetails{
 			Title:  util.UNSUPPORTED_RESOURCE,
 			Status: http.StatusNotFound,
 			Detail: err.Error(),
@@ -56,22 +56,22 @@ func subscriptionPost(n NssfEventSubscriptionCreateData, s *NssfEventSubscriptio
 
 	subscription.SubscriptionId = tempId
 	subscription.SubscriptionData = new(NssfEventSubscriptionCreateData)
-	*subscription.SubscriptionData = n
+	*subscription.SubscriptionData = createData
 
 	factory.NssfConfig.Subscriptions = append(factory.NssfConfig.Subscriptions, subscription)
 
-	s.SubscriptionId = subscription.SubscriptionId
+	createdData.SubscriptionId = subscription.SubscriptionId
 	if !subscription.SubscriptionData.Expiry.IsZero() {
-		s.Expiry = new(time.Time)
-		*s.Expiry = *subscription.SubscriptionData.Expiry
+		createdData.Expiry = new(time.Time)
+		*createdData.Expiry = *subscription.SubscriptionData.Expiry
 	}
-	s.AuthorizedNssaiAvailabilityData = util.AuthorizeOfTaListFromConfig(subscription.SubscriptionData.TaiList)
+	createdData.AuthorizedNssaiAvailabilityData = util.AuthorizeOfTaListFromConfig(subscription.SubscriptionData.TaiList)
 
 	status = http.StatusCreated
 	return
 }
 
-func subscriptionDelete(subscriptionId string, d *ProblemDetails) (status int) {
+func subscriptionDelete(subscriptionId string, problemDetail *ProblemDetails) (status int) {
 	for i, subscription := range factory.NssfConfig.Subscriptions {
 		if subscription.SubscriptionId == subscriptionId {
 			factory.NssfConfig.Subscriptions = append(factory.NssfConfig.Subscriptions[:i],
@@ -83,11 +83,10 @@ func subscriptionDelete(subscriptionId string, d *ProblemDetails) (status int) {
 	}
 
 	// No specific subscription ID exists
-	problemDetail := fmt.Sprintf("Subscription ID '%s' is not available", subscriptionId)
-	*d = ProblemDetails{
+	*problemDetail = ProblemDetails{
 		Title:  util.UNSUPPORTED_RESOURCE,
 		Status: http.StatusNotFound,
-		Detail: problemDetail,
+		Detail: fmt.Sprintf("Subscription ID '%s' is not available", subscriptionId),
 	}
 
 	status = http.StatusNotFound

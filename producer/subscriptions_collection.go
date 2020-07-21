@@ -19,21 +19,21 @@ import (
 )
 
 // NSSAIAvailabilityPost - Creates subscriptions for notification about updates to NSSAI availability information
-func NSSAIAvailabilityPost(responseChan chan message.HandlerResponseMessage, n NssfEventSubscriptionCreateData) {
+func NSSAIAvailabilityPost(responseChan chan message.HandlerResponseMessage, createData NssfEventSubscriptionCreateData) {
 
 	logger.Nssaiavailability.Infof("Request received - NSSAIAvailabilityPost")
 
 	var (
 		isValidRequest bool = true
 		status         int
-		s              NssfEventSubscriptionCreatedData
-		d              ProblemDetails
+		createdData    NssfEventSubscriptionCreatedData
+		problemDetail  ProblemDetails
 	)
 
 	// TODO: If NF consumer is not authorized to update NSSAI availability, return ProblemDetails with code 403 Forbidden
 
 	if isValidRequest {
-		status = subscriptionPost(n, &s, &d)
+		status = subscriptionPost(createData, &createdData, &problemDetail)
 	}
 
 	if status == http.StatusCreated {
@@ -41,7 +41,7 @@ func NSSAIAvailabilityPost(responseChan chan message.HandlerResponseMessage, n N
 			HttpResponse: &http_wrapper.Response{
 				Header: nil,
 				Status: status,
-				Body:   s,
+				Body:   createData,
 			},
 		}
 	} else {
@@ -49,7 +49,7 @@ func NSSAIAvailabilityPost(responseChan chan message.HandlerResponseMessage, n N
 			HttpResponse: &http_wrapper.Response{
 				Header: nil,
 				Status: status,
-				Body:   d,
+				Body:   problemDetail,
 			},
 		}
 	}

@@ -255,70 +255,70 @@ func GetRestrictedSnssaiListFromConfig(tai Tai) []RestrictedSnssai {
 
 // Get authorized NSSAI availability data of the given NF ID and TAI from configuration
 func AuthorizeOfAmfTaFromConfig(nfId string, tai Tai) (AuthorizedNssaiAvailabilityData, error) {
-	var a AuthorizedNssaiAvailabilityData
-	a.Tai = new(Tai)
-	*a.Tai = tai
+	var authorizedNssaiAvailabilityData AuthorizedNssaiAvailabilityData
+	authorizedNssaiAvailabilityData.Tai = new(Tai)
+	*authorizedNssaiAvailabilityData.Tai = tai
 
 	for _, amfConfig := range factory.NssfConfig.Configuration.AmfList {
 		if amfConfig.NfId == nfId {
 			for _, supportedNssaiAvailabilityData := range amfConfig.SupportedNssaiAvailabilityData {
 				if reflect.DeepEqual(*supportedNssaiAvailabilityData.Tai, tai) {
-					a.SupportedSnssaiList = supportedNssaiAvailabilityData.SupportedSnssaiList
-					a.RestrictedSnssaiList = GetRestrictedSnssaiListFromConfig(tai)
+					authorizedNssaiAvailabilityData.SupportedSnssaiList = supportedNssaiAvailabilityData.SupportedSnssaiList
+					authorizedNssaiAvailabilityData.RestrictedSnssaiList = GetRestrictedSnssaiListFromConfig(tai)
 
 					// TODO: Sort the returned slice
-					return a, nil
+					return authorizedNssaiAvailabilityData, nil
 				}
 			}
 			e, _ := json.Marshal(tai)
 			err := fmt.Errorf("No supported S-NSSAI list by AMF %s under TAI %s in NSSF configuration", nfId, e)
-			return a, err
+			return authorizedNssaiAvailabilityData, err
 		}
 	}
 	err := fmt.Errorf("No AMF configuration of %s", nfId)
-	return a, err
+	return authorizedNssaiAvailabilityData, err
 }
 
 // Get all authorized NSSAI availability data of the given NF ID from configuration
 func AuthorizeOfAmfFromConfig(nfId string) ([]AuthorizedNssaiAvailabilityData, error) {
-	var s []AuthorizedNssaiAvailabilityData
+	var authorizedNssaiAvailabilityDataList []AuthorizedNssaiAvailabilityData
 
 	for _, amfConfig := range factory.NssfConfig.Configuration.AmfList {
 		if amfConfig.NfId == nfId {
 			for _, supportedNssaiAvailabilityData := range amfConfig.SupportedNssaiAvailabilityData {
-				var a AuthorizedNssaiAvailabilityData
-				a.Tai = new(Tai)
-				*a.Tai = *supportedNssaiAvailabilityData.Tai
-				a.SupportedSnssaiList = supportedNssaiAvailabilityData.SupportedSnssaiList
-				a.RestrictedSnssaiList = GetRestrictedSnssaiListFromConfig(*a.Tai)
+				var authorizedNssaiAvailabilityData AuthorizedNssaiAvailabilityData
+				authorizedNssaiAvailabilityData.Tai = new(Tai)
+				*authorizedNssaiAvailabilityData.Tai = *supportedNssaiAvailabilityData.Tai
+				authorizedNssaiAvailabilityData.SupportedSnssaiList = supportedNssaiAvailabilityData.SupportedSnssaiList
+				authorizedNssaiAvailabilityData.RestrictedSnssaiList = GetRestrictedSnssaiListFromConfig(*authorizedNssaiAvailabilityData.Tai)
 
-				s = append(s, a)
+				authorizedNssaiAvailabilityDataList = append(authorizedNssaiAvailabilityDataList, authorizedNssaiAvailabilityData)
 			}
-			return s, nil
+			return authorizedNssaiAvailabilityDataList, nil
 		}
 	}
 	err := fmt.Errorf("No AMF configuration of %s", nfId)
-	return s, err
+	return authorizedNssaiAvailabilityDataList, err
 }
 
 // Get authorized NSSAI availability data of the given TAI list from configuration
 func AuthorizeOfTaListFromConfig(taiList []Tai) []AuthorizedNssaiAvailabilityData {
-	var s []AuthorizedNssaiAvailabilityData
+	var authorizedNssaiAvailabilityDataList []AuthorizedNssaiAvailabilityData
 
 	for _, taConfig := range factory.NssfConfig.Configuration.TaList {
 		for _, tai := range taiList {
 			if reflect.DeepEqual(*taConfig.Tai, tai) {
-				var a AuthorizedNssaiAvailabilityData
-				a.Tai = new(Tai)
-				*a.Tai = tai
-				a.SupportedSnssaiList = taConfig.SupportedSnssaiList
-				a.RestrictedSnssaiList = GetRestrictedSnssaiListFromConfig(tai)
+				var authorizedNssaiAvailabilityData AuthorizedNssaiAvailabilityData
+				authorizedNssaiAvailabilityData.Tai = new(Tai)
+				*authorizedNssaiAvailabilityData.Tai = tai
+				authorizedNssaiAvailabilityData.SupportedSnssaiList = taConfig.SupportedSnssaiList
+				authorizedNssaiAvailabilityData.RestrictedSnssaiList = GetRestrictedSnssaiListFromConfig(tai)
 
-				s = append(s, a)
+				authorizedNssaiAvailabilityDataList = append(authorizedNssaiAvailabilityDataList, authorizedNssaiAvailabilityData)
 			}
 		}
 	}
-	return s
+	return authorizedNssaiAvailabilityDataList
 }
 
 // Get supported S-NSSAI list of the given NF ID and TAI from configuration
@@ -357,15 +357,16 @@ func FindMappingWithHomeSnssai(snssai Snssai, mappings []MappingOfSnssai) (Mappi
 }
 
 // Add Allowed S-NSSAI to Authorized Network Slice Info
-func AddAllowedSnssai(allowedSnssai AllowedSnssai, accessType AccessType, a *AuthorizedNetworkSliceInfo) {
+func AddAllowedSnssai(allowedSnssai AllowedSnssai, accessType AccessType, authorizedNetworkSliceInfo *AuthorizedNetworkSliceInfo) {
 	hitAllowedNssai := false
-	for i := range a.AllowedNssaiList {
-		if a.AllowedNssaiList[i].AccessType == accessType {
+	for i := range authorizedNetworkSliceInfo.AllowedNssaiList {
+		if authorizedNetworkSliceInfo.AllowedNssaiList[i].AccessType == accessType {
 			hitAllowedNssai = true
-			if len(a.AllowedNssaiList[i].AllowedSnssaiList) == 8 {
+			if len(authorizedNetworkSliceInfo.AllowedNssaiList[i].AllowedSnssaiList) == 8 {
 				logger.Util.Infof("Unable to add a new Allowed S-NSSAI since already eight S-NSSAIs in Allowed NSSAI")
 			} else {
-				a.AllowedNssaiList[i].AllowedSnssaiList = append(a.AllowedNssaiList[i].AllowedSnssaiList, allowedSnssai)
+				authorizedNetworkSliceInfo.AllowedNssaiList[i].AllowedSnssaiList =
+					append(authorizedNetworkSliceInfo.AllowedNssaiList[i].AllowedSnssaiList, allowedSnssai)
 			}
 			break
 		}
@@ -376,13 +377,13 @@ func AddAllowedSnssai(allowedSnssai AllowedSnssai, accessType AccessType, a *Aut
 		allowedNssaiElement.AllowedSnssaiList = append(allowedNssaiElement.AllowedSnssaiList, allowedSnssai)
 		allowedNssaiElement.AccessType = accessType
 
-		a.AllowedNssaiList = append(a.AllowedNssaiList, allowedNssaiElement)
+		authorizedNetworkSliceInfo.AllowedNssaiList = append(authorizedNetworkSliceInfo.AllowedNssaiList, allowedNssaiElement)
 	}
 }
 
 // Add AMF information to Authorized Network Slice Info
-func AddAmfInformation(tai Tai, a *AuthorizedNetworkSliceInfo) {
-	if a.AllowedNssaiList == nil || len(a.AllowedNssaiList) == 0 {
+func AddAmfInformation(tai Tai, authorizedNetworkSliceInfo *AuthorizedNetworkSliceInfo) {
+	if authorizedNetworkSliceInfo.AllowedNssaiList == nil || len(authorizedNetworkSliceInfo.AllowedNssaiList) == 0 {
 		return
 	}
 
@@ -394,7 +395,7 @@ func AddAmfInformation(tai Tai, a *AuthorizedNetworkSliceInfo) {
 	// TODO: Policies of AMF selection (e.g. load balance between AMF instances)
 	for _, amfSetConfig := range factory.NssfConfig.Configuration.AmfSetList {
 		hitAllowedNssai := true
-		for _, allowedNssai := range a.AllowedNssaiList {
+		for _, allowedNssai := range authorizedNetworkSliceInfo.AllowedNssaiList {
 			for _, allowedSnssai := range allowedNssai.AllowedSnssaiList {
 				if CheckSupportedNssaiAvailabilityData(*allowedSnssai.AllowedSnssai,
 					tai, amfSetConfig.SupportedNssaiAvailabilityData) {
@@ -415,12 +416,12 @@ func AddAmfInformation(tai Tai, a *AuthorizedNetworkSliceInfo) {
 			// Add AMF Set to Authorized Network Slice Info
 			if amfSetConfig.AmfList != nil && len(amfSetConfig.AmfList) != 0 {
 				// List of candidate AMF(s) provided in configuration
-				a.CandidateAmfList = append(a.CandidateAmfList, amfSetConfig.AmfList...)
+				authorizedNetworkSliceInfo.CandidateAmfList = append(authorizedNetworkSliceInfo.CandidateAmfList, amfSetConfig.AmfList...)
 			} else {
 				// TODO: Possibly querying the NRF
-				a.TargetAmfSet = amfSetConfig.AmfSetId
+				authorizedNetworkSliceInfo.TargetAmfSet = amfSetConfig.AmfSetId
 				// The API URI of the NRF may be included if target AMF Set is included
-				a.NrfAmfSet = amfSetConfig.NrfAmfSet
+				authorizedNetworkSliceInfo.NrfAmfSet = amfSetConfig.NrfAmfSet
 			}
 			return
 		}
@@ -431,7 +432,7 @@ func AddAmfInformation(tai Tai, a *AuthorizedNetworkSliceInfo) {
 	hitAmf := false
 	for _, amfConfig := range factory.NssfConfig.Configuration.AmfList {
 		hitAllowedNssai := true
-		for _, allowedNssai := range a.AllowedNssaiList {
+		for _, allowedNssai := range authorizedNetworkSliceInfo.AllowedNssaiList {
 			for _, allowedSnssai := range allowedNssai.AllowedSnssaiList {
 				if CheckSupportedNssaiAvailabilityData(*allowedSnssai.AllowedSnssai,
 					tai, amfConfig.SupportedNssaiAvailabilityData) {
@@ -450,7 +451,7 @@ func AddAmfInformation(tai Tai, a *AuthorizedNetworkSliceInfo) {
 			continue
 		} else {
 			// Add AMF Set to Authorized Network Slice Info
-			a.CandidateAmfList = append(a.CandidateAmfList, amfConfig.NfId)
+			authorizedNetworkSliceInfo.CandidateAmfList = append(authorizedNetworkSliceInfo.CandidateAmfList, amfConfig.NfId)
 			hitAmf = true
 		}
 	}
