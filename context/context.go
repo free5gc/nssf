@@ -72,10 +72,10 @@ func InitNssfContext() {
 	nssfContext.Port = nssfConfig.Configuration.Sbi.Port
 	nssfContext.BindingIPv4 = os.Getenv(nssfConfig.Configuration.Sbi.BindingIPv4)
 	if nssfContext.BindingIPv4 == "" {
-		logger.ContextLog.Warn("Problem parsing ServerIPv4 address from ENV Variable. Trying to parse it as string.")
+		logger.ContextLog.Info("Problem parsing ServerIPv4 address from ENV Variable. Trying to parse it as string.")
 		nssfContext.BindingIPv4 = nssfConfig.Configuration.Sbi.BindingIPv4
 		if nssfContext.BindingIPv4 == "" {
-			logger.ContextLog.Warn("Error parsing ServerIPv4 address as string. Using the localhost address as default.")
+			logger.ContextLog.Info("Error parsing ServerIPv4 address as string. Using the 0.0.0.0 address as default.")
 			nssfContext.BindingIPv4 = "0.0.0.0"
 		}
 	}
