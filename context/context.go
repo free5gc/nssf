@@ -9,6 +9,7 @@ package context
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -45,8 +46,9 @@ type NSSFContext struct {
 	NfId            string
 	Name            string
 	UriScheme       models.UriScheme
-	HttpIpv4Address string
+	HttpIpv4Address string // IP register to NRF
 	// HttpIpv6Address string
+	BindingIPv4       string
 	Port              int
 	NfService         map[models.ServiceName]models.NfService
 	NrfUri            string
@@ -66,13 +68,26 @@ func InitNssfContext() {
 	}
 
 	nssfContext.UriScheme = nssfConfig.Configuration.Sbi.Scheme
-	nssfContext.HttpIpv4Address = nssfConfig.Configuration.Sbi.Ipv4Addr
+	nssfContext.HttpIpv4Address = nssfConfig.Configuration.Sbi.RegisterIPv4
 	nssfContext.Port = nssfConfig.Configuration.Sbi.Port
-
+	nssfContext.BindingIPv4 = os.Getenv(nssfConfig.Configuration.Sbi.BindingIPv4)
+	if nssfContext.BindingIPv4 != "" {
+		logger.ContextLog.Info("Parsing ServerIPv4 address from ENV Variable.")
+	} else {
+		nssfContext.BindingIPv4 = nssfConfig.Configuration.Sbi.BindingIPv4
+		if nssfContext.BindingIPv4 == "" {
+			logger.ContextLog.Info("Error parsing ServerIPv4 address as string. Using the 0.0.0.0 address as default.")
+			nssfContext.BindingIPv4 = "0.0.0.0"
+		}
+	}
 	nssfContext.NfService = initNfService(nssfConfig.Configuration.ServiceNameList, nssfConfig.Info.Version)
 
-	nssfContext.NrfUri = nssfConfig.Configuration.NrfUri
-
+	if nssfConfig.Configuration.NrfUri != "" {
+		nssfContext.NrfUri = nssfConfig.Configuration.NrfUri
+	} else {
+		logger.InitLog.Info("NRF Uri is empty! Using localhost as NRF IPv4 address.")
+		nssfContext.NrfUri = fmt.Sprintf("%s://%s:%d", nssfContext.UriScheme, "127.0.0.1", 29510)
+	}
 	nssfContext.SupportedPlmnList = nssfConfig.Configuration.SupportedPlmnList
 }
 
