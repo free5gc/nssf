@@ -10,17 +10,16 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 
 	"free5gc/lib/http2_util"
+	"free5gc/lib/logger_util"
 	"free5gc/lib/path_util"
 	"free5gc/src/app"
 	"free5gc/src/nssf/consumer"
 	"free5gc/src/nssf/context"
 	"free5gc/src/nssf/factory"
-	"free5gc/src/nssf/handler"
 	"free5gc/src/nssf/logger"
 	"free5gc/src/nssf/nssaiavailability"
 	"free5gc/src/nssf/nsselection"
@@ -106,15 +105,13 @@ func (nssf *NSSF) FilterCli(c *cli.Context) (args []string) {
 func (nssf *NSSF) Start() {
 	initLog.Infoln("Server started")
 
-	router := gin.Default()
+	router := logger_util.NewGinWithLogrus(logger.GinLog)
 
 	nssaiavailability.AddService(router)
 	nsselection.AddService(router)
 
-	go handler.Handle()
-
 	self := context.NSSF_Self()
-	addr := fmt.Sprintf("%s:%d", self.BindingIPv4, self.Port)
+	addr := fmt.Sprintf("%s:%d", self.BindingIPv4, self.SBIPort)
 
 	// Register to NRF
 	profile, err := consumer.BuildNFProfile(self)
@@ -129,12 +126,12 @@ func (nssf *NSSF) Start() {
 	server, err := http2_util.NewServer(addr, util.NSSF_LOG_PATH, router)
 
 	if server == nil {
-		initLog.Errorln("Initialize HTTP server failed: %+v", err)
+		initLog.Errorf("Initialize HTTP server failed: %+v", err)
 		return
 	}
 
 	if err != nil {
-		initLog.Warnln("Initialize HTTP server: +%v", err)
+		initLog.Warnf("Initialize HTTP server: +%v", err)
 	}
 
 	serverScheme := factory.NssfConfig.Configuration.Sbi.Scheme
@@ -145,7 +142,7 @@ func (nssf *NSSF) Start() {
 	}
 
 	if err != nil {
-		initLog.Fatalln("HTTP server setup failed: %+v", err)
+		initLog.Fatalf("HTTP server setup failed: %+v", err)
 	}
 }
 
@@ -182,7 +179,7 @@ func (nssf *NSSF) Exec(c *cli.Context) error {
 	}()
 
 	go func() {
-		if err := command.Start(); err != nil {
+		if err = command.Start(); err != nil {
 			fmt.Printf("NSSF Start error: %v", err)
 		}
 		wg.Done()

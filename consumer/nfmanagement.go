@@ -23,7 +23,7 @@ func BuildNFProfile(context *nssf_context.NSSFContext) (profile models.NfProfile
 	profile.NfType = models.NfType_NSSF
 	profile.NfStatus = models.NfStatus_REGISTERED
 	profile.PlmnList = &context.SupportedPlmnList
-	profile.Ipv4Addresses = []string{context.HttpIpv4Address}
+	profile.Ipv4Addresses = []string{context.RegisterIPv4}
 	var services []models.NfService
 	for _, nfService := range context.NfService {
 		services = append(services, nfService)
@@ -34,7 +34,8 @@ func BuildNFProfile(context *nssf_context.NSSFContext) (profile models.NfProfile
 	return
 }
 
-func SendRegisterNFInstance(nrfUri, nfInstanceId string, profile models.NfProfile) (resourceNrfUri string, retrieveNfInstanceId string, err error) {
+func SendRegisterNFInstance(nrfUri, nfInstanceId string, profile models.NfProfile) (
+	resourceNrfUri string, retrieveNfInstanceId string, err error) {
 	configuration := Nnrf_NFManagement.NewConfiguration()
 	configuration.SetBasePath(nrfUri)
 	apiClient := Nnrf_NFManagement.NewAPIClient(configuration)

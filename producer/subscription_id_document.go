@@ -13,37 +13,26 @@ import (
 	"net/http"
 
 	"free5gc/lib/http_wrapper"
-	. "free5gc/lib/openapi/models"
-	"free5gc/src/nssf/handler/message"
+	"free5gc/lib/openapi/models"
 	"free5gc/src/nssf/logger"
 )
 
-// NSSAIAvailabilityUnsubscribe - Deletes an already existing NSSAI availability notification subscription
-func NSSAIAvailabilityUnsubscribe(responseChan chan message.HandlerResponseMessage, subscriptionId string) {
+// HandleNSSAIAvailabilityUnsubscribe - Deletes an already existing NSSAI availability notification subscription
+func HandleNSSAIAvailabilityUnsubscribe(request *http_wrapper.Request) *http_wrapper.Response {
+	logger.Nssaiavailability.Infof("Handle NSSAIAvailabilityUnsubscribe")
 
-	logger.Nssaiavailability.Infof("Request received - NSSAIAvailabilityUnsubscribe")
+	subscriptionID := request.Params["subscriptionId"]
 
-	var (
-		status        int
-		problemDetail ProblemDetails
-	)
+	problemDetails := NSSAIAvailabilityUnsubscribeProcedure(subscriptionID)
 
-	status = subscriptionDelete(subscriptionId, &problemDetail)
-
-	if status == http.StatusNoContent {
-		responseChan <- message.HandlerResponseMessage{
-			HttpResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: status,
-			},
-		}
-	} else {
-		responseChan <- message.HandlerResponseMessage{
-			HttpResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: status,
-				Body:   problemDetail,
-			},
-		}
+	if problemDetails == nil {
+		return http_wrapper.NewResponse(http.StatusNoContent, nil, nil)
+	} else if problemDetails != nil {
+		return http_wrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
+	problemDetails = &models.ProblemDetails{
+		Status: http.StatusForbidden,
+		Cause:  "UNSPECIFIED",
+	}
+	return http_wrapper.NewResponse(http.StatusForbidden, nil, problemDetails)
 }

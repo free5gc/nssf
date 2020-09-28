@@ -15,32 +15,57 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"free5gc/lib/http_wrapper"
+	"free5gc/lib/openapi"
 	. "free5gc/lib/openapi/models"
-	"free5gc/src/nssf/handler"
-	"free5gc/src/nssf/handler/message"
-	"free5gc/src/nssf/util"
+	"free5gc/src/nssf/logger"
+	"free5gc/src/nssf/producer"
 )
 
-func ApiSubscriptionsCollection(c *gin.Context) {
-	var request NssfEventSubscriptionCreateData
-	err := c.ShouldBindJSON(&request)
+func HTTPNSSAIAvailabilityPost(c *gin.Context) {
+	var createData NssfEventSubscriptionCreateData
+
+	requestBody, err := c.GetRawData()
+	if err != nil {
+		problemDetail := ProblemDetails{
+			Title:  "System failure",
+			Status: http.StatusInternalServerError,
+			Detail: err.Error(),
+			Cause:  "SYSTEM_FAILURE",
+		}
+		logger.HandlerLog.Errorf("Get Request Body error: %+v", err)
+		c.JSON(http.StatusInternalServerError, problemDetail)
+		return
+	}
+
+	err = openapi.Deserialize(&createData, requestBody, "application/json")
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
-		d := ProblemDetails{
-			Title:  util.MALFORMED_REQUEST,
+		rsp := ProblemDetails{
+			Title:  "Malformed request syntax",
 			Status: http.StatusBadRequest,
 			Detail: problemDetail,
 		}
-		c.JSON(http.StatusBadRequest, d)
+		logger.HandlerLog.Errorln(problemDetail)
+		c.JSON(http.StatusBadRequest, rsp)
 		return
 	}
-	req := http_wrapper.NewRequest(c.Request, request)
 
-	msg := message.NewMessage(message.NSSAIAvailabilityPost, req)
+	req := http_wrapper.NewRequest(c.Request, createData)
 
-	handler.SendMessage(msg)
-	rsp := <-msg.ResponseChan
+	rsp := producer.HandleNSSAIAvailabilityPost(req)
 
-	httpResponse := rsp.HttpResponse
-	c.JSON(httpResponse.Status, httpResponse.Body)
+	// TODO: Based on TS 29.531 5.3.2.3.1, add location header
+
+	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	if err != nil {
+		logger.HandlerLog.Errorln(err)
+		problemDetails := ProblemDetails{
+			Status: http.StatusInternalServerError,
+			Cause:  "SYSTEM_FAILURE",
+			Detail: err.Error(),
+		}
+		c.JSON(http.StatusInternalServerError, problemDetails)
+	} else {
+		c.Data(rsp.Status, "application/json", responseBody)
+	}
 }

@@ -17,52 +17,57 @@ import (
 	"strings"
 
 	"free5gc/lib/http_wrapper"
-	. "free5gc/lib/openapi/models"
-	"free5gc/src/nssf/handler/message"
+	"free5gc/lib/openapi/models"
 	"free5gc/src/nssf/logger"
 	"free5gc/src/nssf/plugin"
 	"free5gc/src/nssf/util"
 )
 
 // Parse NSSelectionGet query parameter
-func parseQueryParameter(query url.Values) (param plugin.NsselectionQueryParameter, err error) {
+func parseQueryParameter(query url.Values) (plugin.NsselectionQueryParameter, error) {
+	var (
+		param plugin.NsselectionQueryParameter
+		err   error
+	)
 
 	if query.Get("nf-type") != "" {
-		param.NfType = new(NfType)
-		*param.NfType = NfType(query.Get("nf-type"))
+		param.NfType = new(models.NfType)
+		*param.NfType = models.NfType(query.Get("nf-type"))
 	}
 
 	param.NfId = query.Get("nf-id")
 
 	if query.Get("slice-info-request-for-registration") != "" {
-		param.SliceInfoRequestForRegistration = new(SliceInfoForRegistration)
-		err = json.NewDecoder(strings.NewReader(query.Get("slice-info-request-for-registration"))).Decode(param.SliceInfoRequestForRegistration)
+		param.SliceInfoRequestForRegistration = new(models.SliceInfoForRegistration)
+		err = json.NewDecoder(strings.NewReader(
+			query.Get("slice-info-request-for-registration"))).Decode(param.SliceInfoRequestForRegistration)
 		if err != nil {
-			return
+			return param, err
 		}
 	}
 
 	if query.Get("slice-info-request-for-pdu-session") != "" {
-		param.SliceInfoRequestForPduSession = new(SliceInfoForPduSession)
-		err = json.NewDecoder(strings.NewReader(query.Get("slice-info-request-for-pdu-session"))).Decode(param.SliceInfoRequestForPduSession)
+		param.SliceInfoRequestForPduSession = new(models.SliceInfoForPduSession)
+		err = json.NewDecoder(strings.NewReader(
+			query.Get("slice-info-request-for-pdu-session"))).Decode(param.SliceInfoRequestForPduSession)
 		if err != nil {
-			return
+			return param, err
 		}
 	}
 
 	if query.Get("home-plmn-id") != "" {
-		param.HomePlmnId = new(PlmnId)
+		param.HomePlmnId = new(models.PlmnId)
 		err = json.NewDecoder(strings.NewReader(query.Get("home-plmn-id"))).Decode(param.HomePlmnId)
 		if err != nil {
-			return
+			return param, err
 		}
 	}
 
 	if query.Get("tai") != "" {
-		param.Tai = new(Tai)
+		param.Tai = new(models.Tai)
 		err = json.NewDecoder(strings.NewReader(query.Get("tai"))).Decode(param.Tai)
 		if err != nil {
-			return
+			return param, err
 		}
 	}
 
@@ -70,14 +75,14 @@ func parseQueryParameter(query url.Values) (param plugin.NsselectionQueryParamet
 		param.SupportedFeatures = query.Get("supported-features")
 	}
 
-	return
+	return param, err
 }
 
 // Check if the NF service consumer is authorized
 // TODO: Check if the NF service consumer is legal with local configuration, or possibly after querying NRF through
 //       `nf-id` e.g. Whether the V-NSSF is authorized
-func checkNfServiceConsumer(nfType NfType) error {
-	if nfType != NfType_AMF && nfType != NfType_NSSF {
+func checkNfServiceConsumer(nfType models.NfType) error {
+	if nfType != models.NfType_AMF && nfType != models.NfType_NSSF {
 		return fmt.Errorf("`nf-type`:'%s' is not authorized to retrieve the slice selection information", string(nfType))
 	}
 
@@ -85,16 +90,34 @@ func checkNfServiceConsumer(nfType NfType) error {
 }
 
 // NSSelectionGet - Retrieve the Network Slice Selection Information
-func NSSelectionGet(responseChan chan message.HandlerResponseMessage, query url.Values) {
+func HandleNSSelectionGet(request *http_wrapper.Request) *http_wrapper.Response {
 
-	logger.Nsselection.Infof("Request received - NSSelectionGet")
+	logger.Nsselection.Infof("Handle NSSelectionGet")
 
+	query := request.Query
+
+	response, problemDetails := NSSelectionGetProcedure(query)
+
+	if response != nil {
+		return http_wrapper.NewResponse(http.StatusOK, nil, response)
+	} else if problemDetails != nil {
+		return http_wrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
+	}
+	problemDetails = &models.ProblemDetails{
+		Status: http.StatusForbidden,
+		Cause:  "UNSPECIFIED",
+	}
+	return http_wrapper.NewResponse(http.StatusForbidden, nil, problemDetails)
+}
+
+func NSSelectionGetProcedure(query url.Values) (*models.AuthorizedNetworkSliceInfo, *models.ProblemDetails) {
 	var (
-		isValidRequest             bool = true
-		status                     int
-		authorizedNetworkSliceInfo AuthorizedNetworkSliceInfo
-		problemDetails             ProblemDetails
+		status         int
+		response       *models.AuthorizedNetworkSliceInfo
+		problemDetails *models.ProblemDetails
 	)
+	response = &models.AuthorizedNetworkSliceInfo{}
+	problemDetails = &models.ProblemDetails{}
 
 	// TODO: Record request times of the NF service consumer and response with ProblemDetails of 429 Too Many Requests
 	//       if the consumer has sent too many requests in a configured amount of time
@@ -103,52 +126,38 @@ func NSSelectionGet(responseChan chan message.HandlerResponseMessage, query url.
 	// Parse query parameter
 	param, err := parseQueryParameter(query)
 	if err != nil {
-		status = http.StatusBadRequest
-		problemDetails = ProblemDetails{
+		// status = http.StatusBadRequest
+		problemDetails = &models.ProblemDetails{
 			Title:  util.MALFORMED_REQUEST,
 			Status: http.StatusBadRequest,
 			Detail: "[Query Parameter] " + err.Error(),
 		}
-		isValidRequest = false
+		return nil, problemDetails
 	}
 
 	// Check permission of NF service consumer
 	err = checkNfServiceConsumer(*param.NfType)
 	if err != nil {
-		status = http.StatusForbidden
-		problemDetails = ProblemDetails{
+		// status = http.StatusForbidden
+		problemDetails = &models.ProblemDetails{
 			Title:  util.UNAUTHORIZED_CONSUMER,
 			Status: http.StatusForbidden,
 			Detail: err.Error(),
 		}
-		isValidRequest = false
+		return nil, problemDetails
 	}
 
-	if isValidRequest {
-		if param.SliceInfoRequestForRegistration != nil {
-			// Network slice information is requested during the Registration procedure
-			status = nsselectionForRegistration(param, &authorizedNetworkSliceInfo, &problemDetails)
-		} else {
-			// Network slice information is requested during the PDU session establishment procedure
-			status = nsselectionForPduSession(param, &authorizedNetworkSliceInfo, &problemDetails)
-		}
+	if param.SliceInfoRequestForRegistration != nil {
+		// Network slice information is requested during the Registration procedure
+		status = nsselectionForRegistration(param, response, problemDetails)
+	} else {
+		// Network slice information is requested during the PDU session establishment procedure
+		status = nsselectionForPduSession(param, response, problemDetails)
 	}
 
 	if status == http.StatusOK {
-		responseChan <- message.HandlerResponseMessage{
-			HttpResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: status,
-				Body:   authorizedNetworkSliceInfo,
-			},
-		}
+		return response, problemDetails
 	} else {
-		responseChan <- message.HandlerResponseMessage{
-			HttpResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: status,
-				Body:   problemDetails,
-			},
-		}
+		return response, problemDetails
 	}
 }

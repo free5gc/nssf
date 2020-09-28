@@ -15,29 +15,36 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"free5gc/lib/http_wrapper"
-	"free5gc/src/nssf/handler"
-	"free5gc/src/nssf/handler/message"
+	"free5gc/lib/openapi"
+	"free5gc/lib/openapi/models"
 	"free5gc/src/nssf/logger"
+	"free5gc/src/nssf/producer"
 )
 
-func ApiSubscriptionIdDocument(c *gin.Context) {
+func HTTPNSSAIAvailabilityUnsubscribe(c *gin.Context) {
 	// Due to conflict of route matching, 'subscriptions' in the route is replaced with the existing wildcard ':nfId'
-	nfId := c.Param("nfId")
-	if nfId != "subscriptions" {
+	nfID := c.Param("nfId")
+	if nfID != "subscriptions" {
 		c.JSON(http.StatusNotFound, gin.H{})
 		logger.Nssaiavailability.Infof("404 Not Found")
 		return
 	}
 
-	var request interface{}
-	req := http_wrapper.NewRequest(c.Request, request)
-	req.Params["subscriptionId"] = c.Param("subscriptionId")
+	req := http_wrapper.NewRequest(c.Request, nil)
+	req.Params["subscriptionId"] = c.Params.ByName("subscriptionId")
 
-	msg := message.NewMessage(message.NSSAIAvailabilityUnsubscribe, req)
+	rsp := producer.HandleNSSAIAvailabilityUnsubscribe(req)
 
-	handler.SendMessage(msg)
-	rsp := <-msg.ResponseChan
-
-	httpResponse := rsp.HttpResponse
-	c.JSON(httpResponse.Status, httpResponse.Body)
+	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	if err != nil {
+		logger.HandlerLog.Errorln(err)
+		problemDetails := models.ProblemDetails{
+			Status: http.StatusInternalServerError,
+			Cause:  "SYSTEM_FAILURE",
+			Detail: err.Error(),
+		}
+		c.JSON(http.StatusInternalServerError, problemDetails)
+	} else {
+		c.Data(rsp.Status, "application/json", responseBody)
+	}
 }

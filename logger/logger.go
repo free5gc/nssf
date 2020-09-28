@@ -1,11 +1,10 @@
 package logger
 
 import (
-	"fmt"
 	"os"
-	"runtime"
-	"strings"
+	"time"
 
+	formatter "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/sirupsen/logrus"
 
 	"free5gc/lib/logger_conf"
@@ -21,30 +20,18 @@ var InitLog *logrus.Entry
 var Nsselection *logrus.Entry
 var Nssaiavailability *logrus.Entry
 var Util *logrus.Entry
+var GinLog *logrus.Entry
 
 func init() {
 	log = logrus.New()
-	log.SetReportCaller(true)
+	log.SetReportCaller(false)
 
-	log.Formatter = &logrus.TextFormatter{
-		ForceColors:               true,
-		DisableColors:             false,
-		EnvironmentOverrideColors: false,
-		DisableTimestamp:          false,
-		FullTimestamp:             true,
-		TimestampFormat:           "",
-		DisableSorting:            false,
-		SortingFunc:               nil,
-		DisableLevelTruncation:    false,
-		QuoteEmptyFields:          false,
-		FieldMap:                  nil,
-		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-			orgFilename, _ := os.Getwd()
-			repopath := orgFilename
-			repopath = strings.Replace(repopath, "/bin", "", 1)
-			filename := strings.Replace(f.File, repopath, "", -1)
-			return fmt.Sprintf("%s()", f.Function), fmt.Sprintf("%s:%d", filename, f.Line)
-		},
+	log.Formatter = &formatter.Formatter{
+		TimestampFormat: time.RFC3339,
+		TrimMessages:    true,
+		NoFieldsSpace:   true,
+		HideKeys:        true,
+		FieldsOrder:     []string{"component", "category"},
 	}
 
 	free5gcLogHook, err := logger_util.NewFileHook(logger_conf.Free5gcLogFile, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
@@ -57,14 +44,15 @@ func init() {
 		log.Hooks.Add(selfLogHook)
 	}
 
-	AppLog = log.WithFields(logrus.Fields{"NSSF": "app"})
-	ContextLog = log.WithFields(logrus.Fields{"NSSF": "context"})
-	FactoryLog = log.WithFields(logrus.Fields{"NSSF": "factory"})
-	HandlerLog = log.WithFields(logrus.Fields{"NSSF": "handler"})
-	InitLog = log.WithFields(logrus.Fields{"NSSF": "init"})
-	Nsselection = log.WithFields(logrus.Fields{"NSSF": "nsselection"})
-	Nssaiavailability = log.WithFields(logrus.Fields{"NSSF": "nssaiavailability"})
-	Util = log.WithFields(logrus.Fields{"NSSF": "util"})
+	AppLog = log.WithFields(logrus.Fields{"component": "NSSF", "category": "App"})
+	ContextLog = log.WithFields(logrus.Fields{"component": "NSSF", "category": "Context"})
+	FactoryLog = log.WithFields(logrus.Fields{"component": "NSSF", "category": "Factory"})
+	HandlerLog = log.WithFields(logrus.Fields{"component": "NSSF", "category": "Handler"})
+	InitLog = log.WithFields(logrus.Fields{"component": "NSSF", "category": "Init"})
+	Nsselection = log.WithFields(logrus.Fields{"component": "NSSF", "category": "NsSelect"})
+	Nssaiavailability = log.WithFields(logrus.Fields{"component": "NSSF", "category": "NssaiAvail"})
+	Util = log.WithFields(logrus.Fields{"component": "NSSF", "category": "Util"})
+	GinLog = log.WithFields(logrus.Fields{"component": "NSSF", "category": "GIN"})
 }
 
 func SetLogLevel(level logrus.Level) {

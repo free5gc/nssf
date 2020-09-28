@@ -7,6 +7,7 @@ package factory
 import (
 	"fmt"
 	"io/ioutil"
+	"sync"
 
 	"gopkg.in/yaml.v2"
 
@@ -15,6 +16,7 @@ import (
 
 var NssfConfig Config
 var Configured bool
+var ConfigLock sync.RWMutex
 
 func init() {
 	Configured = false

@@ -30,8 +30,8 @@ func init() {
 
 	nssfContext.UriScheme = models.UriScheme_HTTPS
 	// Default NSSF would open services at port 29531 on loopback interface
-	nssfContext.HttpIpv4Address = "127.0.0.1"
-	nssfContext.Port = 29531
+	nssfContext.RegisterIPv4 = "127.0.0.1"
+	nssfContext.SBIPort = 29531
 
 	serviceName := []models.ServiceName{
 		models.ServiceName_NNSSF_NSSELECTION,
@@ -39,17 +39,17 @@ func init() {
 	}
 	nssfContext.NfService = initNfService(serviceName, "1.0.0")
 
-	nssfContext.NrfUri = fmt.Sprintf("%s://%s:%d", models.UriScheme_HTTPS, nssfContext.HttpIpv4Address, 29510)
+	nssfContext.NrfUri = fmt.Sprintf("%s://%s:%d", models.UriScheme_HTTPS, nssfContext.RegisterIPv4, 29510)
 }
 
 type NSSFContext struct {
-	NfId            string
-	Name            string
-	UriScheme       models.UriScheme
-	HttpIpv4Address string // IP register to NRF
+	NfId         string
+	Name         string
+	UriScheme    models.UriScheme
+	RegisterIPv4 string
 	// HttpIpv6Address string
 	BindingIPv4       string
-	Port              int
+	SBIPort           int
 	NfService         map[models.ServiceName]models.NfService
 	NrfUri            string
 	SupportedPlmnList []models.PlmnId
@@ -68,30 +68,33 @@ func InitNssfContext() {
 	}
 
 	nssfContext.UriScheme = nssfConfig.Configuration.Sbi.Scheme
-	nssfContext.HttpIpv4Address = nssfConfig.Configuration.Sbi.RegisterIPv4
-	nssfContext.Port = nssfConfig.Configuration.Sbi.Port
+	nssfContext.RegisterIPv4 = nssfConfig.Configuration.Sbi.RegisterIPv4
+	nssfContext.SBIPort = nssfConfig.Configuration.Sbi.Port
 	nssfContext.BindingIPv4 = os.Getenv(nssfConfig.Configuration.Sbi.BindingIPv4)
 	if nssfContext.BindingIPv4 != "" {
 		logger.ContextLog.Info("Parsing ServerIPv4 address from ENV Variable.")
 	} else {
 		nssfContext.BindingIPv4 = nssfConfig.Configuration.Sbi.BindingIPv4
 		if nssfContext.BindingIPv4 == "" {
-			logger.ContextLog.Info("Error parsing ServerIPv4 address as string. Using the 0.0.0.0 address as default.")
+			logger.ContextLog.Warn("Error parsing ServerIPv4 address as string. Using the 0.0.0.0 address as default.")
 			nssfContext.BindingIPv4 = "0.0.0.0"
 		}
 	}
+
 	nssfContext.NfService = initNfService(nssfConfig.Configuration.ServiceNameList, nssfConfig.Info.Version)
 
 	if nssfConfig.Configuration.NrfUri != "" {
 		nssfContext.NrfUri = nssfConfig.Configuration.NrfUri
 	} else {
-		logger.InitLog.Info("NRF Uri is empty! Using localhost as NRF IPv4 address.")
+		logger.InitLog.Warn("NRF Uri is empty! Using localhost as NRF IPv4 address.")
 		nssfContext.NrfUri = fmt.Sprintf("%s://%s:%d", nssfContext.UriScheme, "127.0.0.1", 29510)
 	}
+
 	nssfContext.SupportedPlmnList = nssfConfig.Configuration.SupportedPlmnList
 }
 
-func initNfService(serviceName []models.ServiceName, version string) (nfService map[models.ServiceName]models.NfService) {
+func initNfService(serviceName []models.ServiceName, version string) (
+	nfService map[models.ServiceName]models.NfService) {
 	versionUri := "v" + strings.Split(version, ".")[0]
 	nfService = make(map[models.ServiceName]models.NfService)
 	for idx, name := range serviceName {
@@ -109,9 +112,9 @@ func initNfService(serviceName []models.ServiceName, version string) (nfService 
 			ApiPrefix:       GetIpv4Uri(),
 			IpEndPoints: &[]models.IpEndPoint{
 				{
-					Ipv4Address: nssfContext.HttpIpv4Address,
+					Ipv4Address: nssfContext.RegisterIPv4,
 					Transport:   models.TransportProtocol_TCP,
-					Port:        int32(nssfContext.Port),
+					Port:        int32(nssfContext.SBIPort),
 				},
 			},
 		}
@@ -121,7 +124,7 @@ func initNfService(serviceName []models.ServiceName, version string) (nfService 
 }
 
 func GetIpv4Uri() string {
-	return fmt.Sprintf("%s://%s:%d", nssfContext.UriScheme, nssfContext.HttpIpv4Address, nssfContext.Port)
+	return fmt.Sprintf("%s://%s:%d", nssfContext.UriScheme, nssfContext.RegisterIPv4, nssfContext.SBIPort)
 }
 
 func NSSF_Self() *NSSFContext {

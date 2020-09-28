@@ -15,73 +15,125 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"free5gc/lib/http_wrapper"
-	. "free5gc/lib/openapi/models"
-	"free5gc/src/nssf/handler"
-	"free5gc/src/nssf/handler/message"
+	"free5gc/lib/openapi"
+	"free5gc/lib/openapi/models"
+	"free5gc/src/nssf/logger"
 	"free5gc/src/nssf/plugin"
-	"free5gc/src/nssf/util"
+	"free5gc/src/nssf/producer"
 )
 
-func ApiNfInstanceIdDocumentDelete(c *gin.Context) {
-	var request interface{}
-	req := http_wrapper.NewRequest(c.Request, request)
-	req.Params["nfId"] = c.Param("nfId")
+func HTTPNSSAIAvailabilityDelete(c *gin.Context) {
+	req := http_wrapper.NewRequest(c.Request, nil)
+	req.Params["nfId"] = c.Params.ByName("nfId")
 
-	msg := message.NewMessage(message.NSSAIAvailabilityDelete, req)
+	rsp := producer.HandleNSSAIAvailabilityDelete(req)
 
-	handler.SendMessage(msg)
-	rsp := <-msg.ResponseChan
-
-	httpResponse := rsp.HttpResponse
-	c.JSON(httpResponse.Status, httpResponse.Body)
+	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	if err != nil {
+		logger.HandlerLog.Errorln(err)
+		problemDetails := models.ProblemDetails{
+			Status: http.StatusInternalServerError,
+			Cause:  "SYSTEM_FAILURE",
+			Detail: err.Error(),
+		}
+		c.JSON(http.StatusInternalServerError, problemDetails)
+	} else {
+		c.Data(rsp.Status, "application/json", responseBody)
+	}
 }
 
-func ApiNfInstanceIdDocumentPatch(c *gin.Context) {
-	var request plugin.PatchDocument
-	err := c.ShouldBindJSON(&request)
+func HTTPNSSAIAvailabilityPatch(c *gin.Context) {
+	var nssaiAvailabilityUpdateInfo plugin.PatchDocument
+
+	requestBody, err := c.GetRawData()
+	if err != nil {
+		problemDetail := models.ProblemDetails{
+			Title:  "System failure",
+			Status: http.StatusInternalServerError,
+			Detail: err.Error(),
+			Cause:  "SYSTEM_FAILURE",
+		}
+		logger.HandlerLog.Errorf("Get Request Body error: %+v", err)
+		c.JSON(http.StatusInternalServerError, problemDetail)
+		return
+	}
+
+	err = openapi.Deserialize(&nssaiAvailabilityUpdateInfo, requestBody, "application/json")
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
-		d := ProblemDetails{
-			Title:  util.MALFORMED_REQUEST,
+		rsp := models.ProblemDetails{
+			Title:  "Malformed request syntax",
 			Status: http.StatusBadRequest,
 			Detail: problemDetail,
 		}
-		c.JSON(http.StatusBadRequest, d)
+		logger.HandlerLog.Errorln(problemDetail)
+		c.JSON(http.StatusBadRequest, rsp)
 		return
 	}
-	req := http_wrapper.NewRequest(c.Request, request)
-	req.Params["nfId"] = c.Param("nfId")
 
-	msg := message.NewMessage(message.NSSAIAvailabilityPatch, req)
+	req := http_wrapper.NewRequest(c.Request, nssaiAvailabilityUpdateInfo)
+	req.Params["nfId"] = c.Params.ByName("nfId")
 
-	handler.SendMessage(msg)
-	rsp := <-msg.ResponseChan
+	rsp := producer.HandleNSSAIAvailabilityPatch(req)
 
-	httpResponse := rsp.HttpResponse
-	c.JSON(httpResponse.Status, httpResponse.Body)
+	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	if err != nil {
+		logger.HandlerLog.Errorln(err)
+		problemDetails := models.ProblemDetails{
+			Status: http.StatusInternalServerError,
+			Cause:  "SYSTEM_FAILURE",
+			Detail: err.Error(),
+		}
+		c.JSON(http.StatusInternalServerError, problemDetails)
+	} else {
+		c.Data(rsp.Status, "application/json", responseBody)
+	}
 }
 
-func ApiNfInstanceIdDocumentPut(c *gin.Context) {
-	var request NssaiAvailabilityInfo
-	err := c.ShouldBindJSON(&request)
+func HTTPNSSAIAvailabilityPut(c *gin.Context) {
+	var nssaiAvailabilityInfo models.NssaiAvailabilityInfo
+
+	requestBody, err := c.GetRawData()
+	if err != nil {
+		problemDetail := models.ProblemDetails{
+			Title:  "System failure",
+			Status: http.StatusInternalServerError,
+			Detail: err.Error(),
+			Cause:  "SYSTEM_FAILURE",
+		}
+		logger.HandlerLog.Errorf("Get Request Body error: %+v", err)
+		c.JSON(http.StatusInternalServerError, problemDetail)
+		return
+	}
+
+	err = openapi.Deserialize(&nssaiAvailabilityInfo, requestBody, "application/json")
 	if err != nil {
 		problemDetail := "[Request Body] " + err.Error()
-		d := ProblemDetails{
-			Title:  util.MALFORMED_REQUEST,
+		rsp := models.ProblemDetails{
+			Title:  "Malformed request syntax",
 			Status: http.StatusBadRequest,
 			Detail: problemDetail,
 		}
-		c.JSON(http.StatusBadRequest, d)
+		logger.HandlerLog.Errorln(problemDetail)
+		c.JSON(http.StatusBadRequest, rsp)
 		return
 	}
-	req := http_wrapper.NewRequest(c.Request, request)
-	req.Params["nfId"] = c.Param("nfId")
 
-	msg := message.NewMessage(message.NSSAIAvailabilityPut, req)
+	req := http_wrapper.NewRequest(c.Request, nssaiAvailabilityInfo)
+	req.Params["nfId"] = c.Params.ByName("nfId")
 
-	handler.SendMessage(msg)
-	rsp := <-msg.ResponseChan
+	rsp := producer.HandleNSSAIAvailabilityPut(req)
 
-	httpResponse := rsp.HttpResponse
-	c.JSON(httpResponse.Status, httpResponse.Body)
+	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
+	if err != nil {
+		logger.HandlerLog.Errorln(err)
+		problemDetails := models.ProblemDetails{
+			Status: http.StatusInternalServerError,
+			Cause:  "SYSTEM_FAILURE",
+			Detail: err.Error(),
+		}
+		c.JSON(http.StatusInternalServerError, problemDetails)
+	} else {
+		c.Data(rsp.Status, "application/json", responseBody)
+	}
 }

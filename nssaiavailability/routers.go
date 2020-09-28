@@ -10,6 +10,8 @@
 package nssaiavailability
 
 import (
+	"free5gc/lib/logger_util"
+	"free5gc/src/nssf/logger"
 	"net/http"
 	"strings"
 
@@ -33,7 +35,7 @@ type Routes []Route
 
 // NewRouter returns a new router.
 func NewRouter() *gin.Engine {
-	router := gin.Default()
+	router := logger_util.NewGinWithLogrus(logger.GinLog)
 	AddService(router)
 	return router
 }
@@ -75,21 +77,21 @@ var routes = Routes{
 		"NSSAIAvailabilityDelete",
 		strings.ToUpper("Delete"),
 		"/nssai-availability/:nfId",
-		ApiNfInstanceIdDocumentDelete,
+		HTTPNSSAIAvailabilityDelete,
 	},
 
 	{
 		"NSSAIAvailabilityPatch",
 		strings.ToUpper("Patch"),
 		"/nssai-availability/:nfId",
-		ApiNfInstanceIdDocumentPatch,
+		HTTPNSSAIAvailabilityPatch,
 	},
 
 	{
 		"NSSAIAvailabilityPut",
 		strings.ToUpper("Put"),
 		"/nssai-availability/:nfId",
-		ApiNfInstanceIdDocumentPut,
+		HTTPNSSAIAvailabilityPut,
 	},
 
 	// Regular expressions for route matching should be unique in Gin package
@@ -100,13 +102,13 @@ var routes = Routes{
 		strings.ToUpper("Delete"),
 		// "/nssai-availability/subscriptions/:subscriptionId",
 		"/nssai-availability/:nfId/:subscriptionId",
-		ApiSubscriptionIdDocument,
+		HTTPNSSAIAvailabilityUnsubscribe,
 	},
 
 	{
 		"NSSAIAvailabilityPost",
 		strings.ToUpper("Post"),
 		"/nssai-availability/subscriptions",
-		ApiSubscriptionsCollection,
+		HTTPNSSAIAvailabilityPost,
 	},
 }

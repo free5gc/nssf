@@ -13,118 +13,71 @@ import (
 	"net/http"
 
 	"free5gc/lib/http_wrapper"
-	. "free5gc/lib/openapi/models"
-	"free5gc/src/nssf/handler/message"
+	"free5gc/lib/openapi/models"
 	"free5gc/src/nssf/logger"
-	. "free5gc/src/nssf/plugin"
+	"free5gc/src/nssf/plugin"
 )
 
-// NSSAIAvailabilityDelete - Deletes an already existing S-NSSAIs per TA provided by the NF service consumer (e.g AMF)
-func NSSAIAvailabilityDelete(responseChan chan message.HandlerResponseMessage, nfId string) {
+// HandleNSSAIAvailabilityDelete - Deletes an already existing S-NSSAIs per TA
+// provided by the NF service consumer (e.g AMF)
+func HandleNSSAIAvailabilityDelete(request *http_wrapper.Request) *http_wrapper.Response {
+	logger.Nssaiavailability.Infof("Handle NSSAIAvailabilityDelete")
 
-	logger.Nssaiavailability.Infof("Request received - NSSAIAvailabilityDelete")
+	nfID := request.Params["nfId"]
 
-	var (
-		status         int
-		problemDetails ProblemDetails
-	)
+	problemDetails := NSSAIAvailabilityDeleteProcedure(nfID)
 
-	status = nssaiavailabilityDelete(nfId, &problemDetails)
-
-	if status == http.StatusNoContent {
-		responseChan <- message.HandlerResponseMessage{
-			HttpResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: status,
-			},
-		}
-	} else {
-		responseChan <- message.HandlerResponseMessage{
-			HttpResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: status,
-				Body:   problemDetails,
-			},
-		}
+	if problemDetails != nil {
+		return http_wrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
+	return http_wrapper.NewResponse(http.StatusNoContent, nil, nil)
 }
 
-// NSSAIAvailabilityPatch - Updates an already existing S-NSSAIs per TA provided by the NF service consumer (e.g AMF)
-func NSSAIAvailabilityPatch(responseChan chan message.HandlerResponseMessage, nfId string, patchDoc PatchDocument) {
+// HandleNSSAIAvailabilityPatch - Updates an already existing S-NSSAIs per TA
+// provided by the NF service consumer (e.g AMF)
+func HandleNSSAIAvailabilityPatch(request *http_wrapper.Request) *http_wrapper.Response {
+	logger.Nssaiavailability.Infof("Handle NSSAIAvailabilityPatch")
 
-	logger.Nssaiavailability.Infof("Request received - NSSAIAvailabilityPatch")
-
-	var (
-		isValidRequest                  bool = true
-		status                          int
-		authorizedNssaiAvailabilityInfo AuthorizedNssaiAvailabilityInfo
-		problemDetails                  ProblemDetails
-	)
+	nssaiAvailabilityUpdateInfo := request.Body.(plugin.PatchDocument)
+	nfID := request.Params["nfId"]
 
 	// TODO: Request NfProfile of NfId from NRF
 	//       Check if NfId is valid AMF and obtain AMF Set ID
 	//       If NfId is invalid, return ProblemDetails with code 404 Not Found
 	//       If NF consumer is not authorized to update NSSAI availability, return ProblemDetails with code 403 Forbidden
 
-	if isValidRequest {
-		status = nssaiavailabilityPatch(nfId, patchDoc, &authorizedNssaiAvailabilityInfo, &problemDetails)
-	}
+	response, problemDetails := NSSAIAvailabilityPatchProcedure(nssaiAvailabilityUpdateInfo, nfID)
 
-	if status == http.StatusOK {
-		responseChan <- message.HandlerResponseMessage{
-			HttpResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: status,
-				Body:   authorizedNssaiAvailabilityInfo,
-			},
-		}
-	} else {
-		responseChan <- message.HandlerResponseMessage{
-			HttpResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: status,
-				Body:   problemDetails,
-			},
-		}
+	if response != nil {
+		return http_wrapper.NewResponse(http.StatusOK, nil, response)
+	} else if problemDetails != nil {
+		return http_wrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
+	problemDetails = &models.ProblemDetails{
+		Status: http.StatusForbidden,
+		Cause:  "UNSPECIFIED",
+	}
+	return http_wrapper.NewResponse(http.StatusForbidden, nil, problemDetails)
 }
 
-// NSSAIAvailabilityPut - Updates/replaces the NSSF with the S-NSSAIs the NF service consumer (e.g AMF) supports per TA
-func NSSAIAvailabilityPut(responseChan chan message.HandlerResponseMessage, nfId string, nssaiAvailabilityInfo NssaiAvailabilityInfo) {
+// HandleNSSAIAvailabilityPut - Updates/replaces the NSSF
+// with the S-NSSAIs the NF service consumer (e.g AMF) supports per TA
+func HandleNSSAIAvailabilityPut(request *http_wrapper.Request) *http_wrapper.Response {
+	logger.Nssaiavailability.Infof("Handle NSSAIAvailabilityPut")
 
-	logger.Nssaiavailability.Infof("Request received - NSSAIAvailabilityPut")
+	nssaiAvailabilityInfo := request.Body.(models.NssaiAvailabilityInfo)
+	nfID := request.Params["nfId"]
 
-	var (
-		isValidRequest                  bool = true
-		status                          int
-		authorizedNssaiAvailabilityInfo AuthorizedNssaiAvailabilityInfo
-		problemDetails                  ProblemDetails
-	)
+	response, problemDetails := NSSAIAvailabilityPutProcedure(nssaiAvailabilityInfo, nfID)
 
-	// TODO: Request NfProfile of NfId from NRF
-	//       Check if NfId is valid AMF and obtain AMF Set ID
-	//       If NfId is invalid, return ProblemDetails with code 404 Not Found
-	//       If NF consumer is not authorized to update NSSAI availability, return ProblemDetails with code 403 Forbidden
-
-	if isValidRequest {
-		status = nssaiavailabilityPut(nfId, nssaiAvailabilityInfo, &authorizedNssaiAvailabilityInfo, &problemDetails)
+	if response != nil {
+		return http_wrapper.NewResponse(http.StatusOK, nil, response)
+	} else if problemDetails != nil {
+		return http_wrapper.NewResponse(int(problemDetails.Status), nil, problemDetails)
 	}
-
-	if status == http.StatusOK {
-		responseChan <- message.HandlerResponseMessage{
-			HttpResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: status,
-				Body:   authorizedNssaiAvailabilityInfo,
-			},
-		}
-	} else {
-		responseChan <- message.HandlerResponseMessage{
-			HttpResponse: &http_wrapper.Response{
-				Header: nil,
-				Status: status,
-				Body:   problemDetails,
-			},
-		}
+	problemDetails = &models.ProblemDetails{
+		Status: http.StatusForbidden,
+		Cause:  "UNSPECIFIED",
 	}
+	return http_wrapper.NewResponse(http.StatusForbidden, nil, problemDetails)
 }
