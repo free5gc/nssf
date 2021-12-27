@@ -119,7 +119,7 @@ func nsselectionForPduSession(param plugin.NsselectionQueryParameter,
 
 	nsiInformationList := util.GetNsiInformationListFromConfig(*param.SliceInfoRequestForPduSession.SNssai)
 
-	if nsiInformationList == nil {
+	if len(nsiInformationList) == 0 {
 		*authorizedNetworkSliceInfo = models.AuthorizedNetworkSliceInfo{}
 	} else {
 		nsiInformation := selectNsiInformation(nsiInformationList)
