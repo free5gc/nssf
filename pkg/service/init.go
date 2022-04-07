@@ -75,7 +75,7 @@ func (nssf *NSSF) Initialize(c *cli.Context) error {
 		}
 	}
 
-	nssf.setLogLevel()
+	nssf.SetLogLevel()
 
 	if err := factory.CheckConfigVersion(); err != nil {
 		return err
@@ -84,7 +84,7 @@ func (nssf *NSSF) Initialize(c *cli.Context) error {
 	return nil
 }
 
-func (nssf *NSSF) setLogLevel() {
+func (nssf *NSSF) SetLogLevel() {
 	if factory.NssfConfig.Logger == nil {
 		logger.InitLog.Warnln("NSSF config without log level setting!!!")
 		return
