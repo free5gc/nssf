@@ -43,6 +43,7 @@ type Configuration struct {
 	AmfList                  []AmfConfig             `yaml:"amfList"`
 	TaList                   []TaConfig              `yaml:"taList"`
 	MappingListFromPlmn      []MappingFromPlmnConfig `yaml:"mappingListFromPlmn"`
+	OAuth                    bool                    `yaml:"OAuth,omitempty"`
 }
 
 type Sbi struct {

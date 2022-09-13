@@ -52,6 +52,7 @@ type NSSFContext struct {
 	NfService         map[models.ServiceName]models.NfService
 	NrfUri            string
 	SupportedPlmnList []models.PlmnId
+	OAuth             bool `yaml:"OAuth,omitempty"`
 }
 
 // Initialize NSSF context with configuration factory
@@ -90,10 +91,12 @@ func InitNssfContext() {
 	}
 
 	nssfContext.SupportedPlmnList = nssfConfig.Configuration.SupportedPlmnList
+	nssfContext.OAuth = factory.NssfConfig.Configuration.OAuth
 }
 
 func initNfService(serviceName []models.ServiceName, version string) (
-	nfService map[models.ServiceName]models.NfService) {
+	nfService map[models.ServiceName]models.NfService,
+) {
 	versionUri := "v" + strings.Split(version, ".")[0]
 	nfService = make(map[models.ServiceName]models.NfService)
 	for idx, name := range serviceName {

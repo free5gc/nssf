@@ -14,6 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	nssf_context "github.com/free5gc/nssf/internal/context"
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/plugin"
 	"github.com/free5gc/nssf/internal/sbi/producer"
@@ -23,6 +24,12 @@ import (
 )
 
 func HTTPNSSAIAvailabilityDelete(c *gin.Context) {
+	scopes := []string{"nnssf-nssaiavailability"}
+	_, oauth_err := openapi.CheckOAuth(c.Request.Header.Get("Authorization"), scopes)
+	if oauth_err != nil && nssf_context.NSSF_Self().OAuth == true {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": oauth_err.Error()})
+		return
+	}
 	req := httpwrapper.NewRequest(c.Request, nil)
 	req.Params["nfId"] = c.Params.ByName("nfId")
 
@@ -43,6 +50,12 @@ func HTTPNSSAIAvailabilityDelete(c *gin.Context) {
 }
 
 func HTTPNSSAIAvailabilityPatch(c *gin.Context) {
+	scopes := []string{"nnssf-nssaiavailability"}
+	_, oauth_err := openapi.CheckOAuth(c.Request.Header.Get("Authorization"), scopes)
+	if oauth_err != nil && nssf_context.NSSF_Self().OAuth == true {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": oauth_err.Error()})
+		return
+	}
 	var nssaiAvailabilityUpdateInfo plugin.PatchDocument
 
 	requestBody, err := c.GetRawData()
@@ -91,6 +104,12 @@ func HTTPNSSAIAvailabilityPatch(c *gin.Context) {
 }
 
 func HTTPNSSAIAvailabilityPut(c *gin.Context) {
+	scopes := []string{"nnssf-nssaiavailability"}
+	_, oauth_err := openapi.CheckOAuth(c.Request.Header.Get("Authorization"), scopes)
+	if oauth_err != nil && nssf_context.NSSF_Self().OAuth == true {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": oauth_err.Error()})
+		return
+	}
 	var nssaiAvailabilityInfo models.NssaiAvailabilityInfo
 
 	requestBody, err := c.GetRawData()

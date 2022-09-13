@@ -14,6 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	nssf_context "github.com/free5gc/nssf/internal/context"
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/sbi/producer"
 	"github.com/free5gc/openapi"
@@ -22,7 +23,14 @@ import (
 )
 
 func HTTPNSSAIAvailabilityUnsubscribe(c *gin.Context) {
-	// Due to conflict of route matching, 'subscriptions' in the route is replaced with the existing wildcard ':nfId'
+	scopes := // Due to conflict of route matching, 'subscriptions' in the route is replaced with the existing wildcard ':nfId'
+		[]string{"nnssf-nssaiavailability"}
+	_, oauth_err := openapi.CheckOAuth(c.Request.Header.Get("Authorization"), scopes)
+	if oauth_err != nil && nssf_context.NSSF_Self().OAuth == true {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": oauth_err.Error()})
+		return
+	}
+
 	nfID := c.Param("nfId")
 	if nfID != "subscriptions" {
 		c.JSON(http.StatusNotFound, gin.H{})

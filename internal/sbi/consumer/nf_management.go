@@ -7,7 +7,6 @@
 package consumer
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -37,14 +36,15 @@ func BuildNFProfile(context *nssf_context.NSSFContext) (profile models.NfProfile
 }
 
 func SendRegisterNFInstance(nrfUri, nfInstanceId string, profile models.NfProfile) (
-	resourceNrfUri string, retrieveNfInstanceId string, err error) {
+	resourceNrfUri string, retrieveNfInstanceId string, err error,
+) {
 	configuration := Nnrf_NFManagement.NewConfiguration()
 	configuration.SetBasePath(nrfUri)
 	apiClient := Nnrf_NFManagement.NewAPIClient(configuration)
 
 	var res *http.Response
 	for {
-		_, res, err = apiClient.NFInstanceIDDocumentApi.RegisterNFInstance(context.TODO(), nfInstanceId, profile)
+		_, res, err = apiClient.NFInstanceIDDocumentApi.RegisterNFInstance(openapi.CreateContext(nssf_context.NSSF_Self().OAuth, nssf_context.NSSF_Self().NfId, nssf_context.NSSF_Self().NrfUri, "NSSF"), nfInstanceId, profile)
 		if err != nil || res == nil {
 			// TODO : add log
 			logger.ConsumerLog.Errorf("NSSF register to NRF Error[%s]", err.Error())
@@ -85,7 +85,7 @@ func SendDeregisterNFInstance() (*models.ProblemDetails, error) {
 	var res *http.Response
 	var err error
 
-	res, err = client.NFInstanceIDDocumentApi.DeregisterNFInstance(context.Background(), nssfSelf.NfId)
+	res, err = client.NFInstanceIDDocumentApi.DeregisterNFInstance(openapi.CreateContext(nssf_context.NSSF_Self().OAuth, nssf_context.NSSF_Self().NfId, nssf_context.NSSF_Self().NrfUri, "NSSF"), nssfSelf.NfId)
 	if err == nil {
 		return nil, err
 	} else if res != nil {
