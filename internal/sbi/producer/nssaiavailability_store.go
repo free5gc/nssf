@@ -44,7 +44,8 @@ func NSSAIAvailabilityDeleteProcedure(nfId string) *models.ProblemDetails {
 
 // NSSAIAvailability PATCH method
 func NSSAIAvailabilityPatchProcedure(nssaiAvailabilityUpdateInfo plugin.PatchDocument, nfId string) (
-	*models.AuthorizedNssaiAvailabilityInfo, *models.ProblemDetails) {
+	*models.AuthorizedNssaiAvailabilityInfo, *models.ProblemDetails,
+) {
 	var (
 		response       *models.AuthorizedNssaiAvailabilityInfo = &models.AuthorizedNssaiAvailabilityInfo{}
 		problemDetails *models.ProblemDetails
@@ -152,7 +153,8 @@ func NSSAIAvailabilityPatchProcedure(nssaiAvailabilityUpdateInfo plugin.PatchDoc
 
 // NSSAIAvailability PUT method
 func NSSAIAvailabilityPutProcedure(nssaiAvailabilityInfo models.NssaiAvailabilityInfo, nfId string) (
-	*models.AuthorizedNssaiAvailabilityInfo, *models.ProblemDetails) {
+	*models.AuthorizedNssaiAvailabilityInfo, *models.ProblemDetails,
+) {
 	var (
 		response       *models.AuthorizedNssaiAvailabilityInfo = &models.AuthorizedNssaiAvailabilityInfo{}
 		problemDetails *models.ProblemDetails
@@ -179,8 +181,8 @@ func NSSAIAvailabilityPutProcedure(nssaiAvailabilityInfo models.NssaiAvailabilit
 	factory.ConfigLock.Lock()
 	for i, amfConfig := range factory.NssfConfig.Configuration.AmfList {
 		if amfConfig.NfId == nfId {
-			factory.NssfConfig.Configuration.AmfList[i].SupportedNssaiAvailabilityData =
-				nssaiAvailabilityInfo.SupportedNssaiAvailabilityData
+			factory.NssfConfig.Configuration.AmfList[i].SupportedNssaiAvailabilityData = nssaiAvailabilityInfo.
+				SupportedNssaiAvailabilityData
 
 			hitAmf = true
 			break
@@ -194,7 +196,9 @@ func NSSAIAvailabilityPutProcedure(nssaiAvailabilityInfo models.NssaiAvailabilit
 		amfConfig.NfId = nfId
 		amfConfig.SupportedNssaiAvailabilityData = nssaiAvailabilityInfo.SupportedNssaiAvailabilityData
 		factory.ConfigLock.Lock()
-		factory.NssfConfig.Configuration.AmfList = append(factory.NssfConfig.Configuration.AmfList, amfConfig)
+		factory.NssfConfig.Configuration.AmfList = append(
+			factory.NssfConfig.Configuration.AmfList,
+			amfConfig)
 		factory.ConfigLock.Unlock()
 	}
 
@@ -205,8 +209,9 @@ func NSSAIAvailabilityPutProcedure(nssaiAvailabilityInfo models.NssaiAvailabilit
 	for _, s := range nssaiAvailabilityInfo.SupportedNssaiAvailabilityData {
 		authorizedNssaiAvailabilityData, err := util.AuthorizeOfAmfTaFromConfig(nfId, *s.Tai)
 		if err == nil {
-			response.AuthorizedNssaiAvailabilityData =
-				append(response.AuthorizedNssaiAvailabilityData, authorizedNssaiAvailabilityData)
+			response.AuthorizedNssaiAvailabilityData = append(
+				response.AuthorizedNssaiAvailabilityData,
+				authorizedNssaiAvailabilityData)
 		} else {
 			logger.Nssaiavailability.Warnf(err.Error())
 		}

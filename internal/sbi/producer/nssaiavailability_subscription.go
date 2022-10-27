@@ -44,7 +44,8 @@ func getUnusedSubscriptionID() (string, error) {
 
 // NSSAIAvailability subscription POST method
 func NSSAIAvailabilityPostProcedure(createData models.NssfEventSubscriptionCreateData) (
-	*models.NssfEventSubscriptionCreatedData, *models.ProblemDetails) {
+	*models.NssfEventSubscriptionCreatedData, *models.ProblemDetails,
+) {
 	var (
 		response       *models.NssfEventSubscriptionCreatedData = &models.NssfEventSubscriptionCreatedData{}
 		problemDetails *models.ProblemDetails

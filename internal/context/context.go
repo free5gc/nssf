@@ -93,7 +93,8 @@ func InitNssfContext() {
 }
 
 func initNfService(serviceName []models.ServiceName, version string) (
-	nfService map[models.ServiceName]models.NfService) {
+	nfService map[models.ServiceName]models.NfService,
+) {
 	versionUri := "v" + strings.Split(version, ".")[0]
 	nfService = make(map[models.ServiceName]models.NfService)
 	for idx, name := range serviceName {
