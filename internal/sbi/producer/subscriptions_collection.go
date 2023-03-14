@@ -19,7 +19,7 @@ import (
 
 // HandleNSSAIAvailabilityPost - Creates subscriptions for notification about updates to NSSAI availability information
 func HandleNSSAIAvailabilityPost(request *httpwrapper.Request) *httpwrapper.Response {
-	logger.Nssaiavailability.Infof("Handle NSSAIAvailabilityPost")
+	logger.NssaiavailLog.Infof("Handle NSSAIAvailabilityPost")
 
 	createData := request.Body.(models.NssfEventSubscriptionCreateData)
 

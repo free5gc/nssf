@@ -91,7 +91,7 @@ func checkNfServiceConsumer(nfType models.NfType) error {
 
 // NSSelectionGet - Retrieve the Network Slice Selection Information
 func HandleNSSelectionGet(request *httpwrapper.Request) *httpwrapper.Response {
-	logger.Nsselection.Infof("Handle NSSelectionGet")
+	logger.NsselLog.Infof("Handle NSSelectionGet")
 
 	query := request.Query
 

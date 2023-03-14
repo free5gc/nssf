@@ -32,7 +32,7 @@ func HTTPNSSAIAvailabilityPost(c *gin.Context) {
 			Detail: err.Error(),
 			Cause:  "SYSTEM_FAILURE",
 		}
-		logger.HandlerLog.Errorf("Get Request Body error: %+v", err)
+		logger.NssaiavailLog.Errorf("Get Request Body error: %+v", err)
 		c.JSON(http.StatusInternalServerError, problemDetail)
 		return
 	}
@@ -45,7 +45,7 @@ func HTTPNSSAIAvailabilityPost(c *gin.Context) {
 			Status: http.StatusBadRequest,
 			Detail: problemDetail,
 		}
-		logger.HandlerLog.Errorln(problemDetail)
+		logger.NssaiavailLog.Errorln(problemDetail)
 		c.JSON(http.StatusBadRequest, rsp)
 		return
 	}
@@ -58,7 +58,7 @@ func HTTPNSSAIAvailabilityPost(c *gin.Context) {
 
 	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
 	if err != nil {
-		logger.HandlerLog.Errorln(err)
+		logger.NssaiavailLog.Errorln(err)
 		problemDetails := ProblemDetails{
 			Status: http.StatusInternalServerError,
 			Cause:  "SYSTEM_FAILURE",

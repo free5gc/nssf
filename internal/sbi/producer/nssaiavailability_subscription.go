@@ -23,8 +23,8 @@ import (
 // In this implementation, string converted from 32-bit integer is used as subscription ID
 func getUnusedSubscriptionID() (string, error) {
 	var idx uint32 = 1
-	factory.ConfigLock.RLock()
-	defer factory.ConfigLock.RUnlock()
+	factory.NssfConfig.RLock()
+	defer factory.NssfConfig.RUnlock()
 	for _, subscription := range factory.NssfConfig.Subscriptions {
 		tempID, err := strconv.Atoi(subscription.SubscriptionId)
 		if err != nil {
@@ -54,7 +54,7 @@ func NSSAIAvailabilityPostProcedure(createData models.NssfEventSubscriptionCreat
 	var subscription factory.Subscription
 	tempID, err := getUnusedSubscriptionID()
 	if err != nil {
-		logger.Nssaiavailability.Warnf(err.Error())
+		logger.NssaiavailLog.Warnf(err.Error())
 
 		*problemDetails = models.ProblemDetails{
 			Title:  util.UNSUPPORTED_RESOURCE,
@@ -83,8 +83,8 @@ func NSSAIAvailabilityPostProcedure(createData models.NssfEventSubscriptionCreat
 func NSSAIAvailabilityUnsubscribeProcedure(subscriptionId string) *models.ProblemDetails {
 	var problemDetails *models.ProblemDetails
 
-	factory.ConfigLock.Lock()
-	defer factory.ConfigLock.Unlock()
+	factory.NssfConfig.Lock()
+	defer factory.NssfConfig.Unlock()
 	for i, subscription := range factory.NssfConfig.Subscriptions {
 		if subscription.SubscriptionId == subscriptionId {
 			factory.NssfConfig.Subscriptions = append(factory.NssfConfig.Subscriptions[:i],

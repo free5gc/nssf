@@ -5,31 +5,53 @@
 package factory
 
 import (
+	"errors"
+	"fmt"
+	"strconv"
+	"sync"
+
+	"github.com/asaskevich/govalidator"
+
+	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/openapi/models"
-	logger_util "github.com/free5gc/util/logger"
 )
 
 const (
-	NSSF_EXPECTED_CONFIG_VERSION = "1.0.1"
+	NssfDefaultTLSKeyLogPath   = "./log/nssfsslkey.log"
+	NssfDefaultTLSPemPath      = "./config/TLS/nssf.pem"
+	NssfDefaultTLSKeyPath      = "./config/TLS/nssf.key"
+	NssfDefaultConfigPath      = "./config/nssfcfg.yaml"
+	NssfSbiDefaultIPv4         = "127.0.0.31"
+	NssfSbiDefaultPort         = 8000
+	NssfSbiDefaultScheme       = "https"
+	NssfDefaultNrfUri          = "https://127.0.0.10:8000"
+	NssfNssaiavailResUriPrefix = "/nnssf-nssaiavailability/v1"
+	NssfNsselectResUriPrefix   = "/nnssf-nsselection/v1"
 )
 
 type Config struct {
-	Info          *Info               `yaml:"info"`
-	Configuration *Configuration      `yaml:"configuration"`
-	Subscriptions []Subscription      `yaml:"subscriptions,omitempty"`
-	Logger        *logger_util.Logger `yaml:"logger"`
+	Info          *Info          `yaml:"info" valid:"required"`
+	Configuration *Configuration `yaml:"configuration" valid:"required"`
+	Subscriptions []Subscription `yaml:"subscriptions,omitempty"`
+	Logger        *Logger        `yaml:"logger" valid:"required"`
+	sync.RWMutex
+}
+
+func (c *Config) Validate() (bool, error) {
+	if configuration := c.Configuration; configuration != nil {
+		if result, err := configuration.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(c)
+	return result, appendInvalid(err)
 }
 
 type Info struct {
-	Version     string `yaml:"version"`
-	Description string `yaml:"description,omitempty"`
+	Version     string `yaml:"version" valid:"required,in(1.0.2)"`
+	Description string `yaml:"description,omitempty" valid:"type(string)"`
 }
-
-const (
-	NSSF_DEFAULT_IPV4     = "127.0.0.31"
-	NSSF_DEFAULT_PORT     = "8000"
-	NSSF_DEFAULT_PORT_INT = 8000
-)
 
 type Configuration struct {
 	NssfName                 string                  `yaml:"nssfName,omitempty"`
@@ -45,6 +67,48 @@ type Configuration struct {
 	MappingListFromPlmn      []MappingFromPlmnConfig `yaml:"mappingListFromPlmn"`
 }
 
+type Logger struct {
+	Enable       bool   `yaml:"enable" valid:"type(bool)"`
+	Level        string `yaml:"level" valid:"required,in(trace|debug|info|warn|error|fatal|panic)"`
+	ReportCaller bool   `yaml:"reportCaller" valid:"type(bool)"`
+}
+
+func (c *Configuration) validate() (bool, error) {
+	if sbi := c.Sbi; sbi != nil {
+		if result, err := sbi.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	for index, serviceName := range c.ServiceNameList {
+		switch {
+		case serviceName == "nnssf-nsselection":
+		case serviceName == "nnssf-nssaiavailability":
+		default:
+			err := errors.New("Invalid serviceNameList[" + strconv.Itoa(index) + "]: " +
+				string(serviceName) + ", should be nausf-auth.")
+			return false, err
+		}
+	}
+
+	for index, plmnId := range c.SupportedPlmnList {
+		if result := govalidator.StringMatches(plmnId.Mcc, "^[0-9]{3}$"); !result {
+			err := errors.New("Invalid plmnSupportList[" + strconv.Itoa(index) + "].Mcc: " +
+				plmnId.Mcc + ", should be 3 digits interger.")
+			return false, err
+		}
+
+		if result := govalidator.StringMatches(plmnId.Mnc, "^[0-9]{2,3}$"); !result {
+			err := errors.New("Invalid plmnSupportList[" + strconv.Itoa(index) + "].Mnc: " +
+				plmnId.Mnc + ", should be 2 or 3 digits interger.")
+			return false, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(c)
+	return result, appendInvalid(err)
+}
+
 type Sbi struct {
 	Scheme models.UriScheme `yaml:"scheme"`
 	// Currently only support IPv4 and thus `Ipv4Addr` field shall not be empty
@@ -55,9 +119,44 @@ type Sbi struct {
 	Tls         *Tls   `yaml:"tls,omitempty" valid:"optional"`
 }
 
+func (s *Sbi) validate() (bool, error) {
+	govalidator.TagMap["scheme"] = govalidator.Validator(func(str string) bool {
+		return str == "https" || str == "http"
+	})
+
+	if tls := s.Tls; tls != nil {
+		if result, err := tls.validate(); err != nil {
+			return result, err
+		}
+	}
+
+	result, err := govalidator.ValidateStruct(s)
+	return result, appendInvalid(err)
+}
+
 type Tls struct {
 	Pem string `yaml:"pem,omitempty" valid:"type(string),minstringlength(1),required"`
 	Key string `yaml:"key,omitempty" valid:"type(string),minstringlength(1),required"`
+}
+
+func (t *Tls) validate() (bool, error) {
+	result, err := govalidator.ValidateStruct(t)
+	return result, err
+}
+
+func appendInvalid(err error) error {
+	var errs govalidator.Errors
+
+	if err == nil {
+		return nil
+	}
+
+	es := err.(govalidator.Errors).Errors()
+	for _, e := range es {
+		errs = append(errs, fmt.Errorf("Invalid %w", e))
+	}
+
+	return error(errs)
 }
 
 type AmfConfig struct {
@@ -101,8 +200,85 @@ type Subscription struct {
 }
 
 func (c *Config) GetVersion() string {
-	if c.Info != nil && c.Info.Version != "" {
+	c.RLock()
+	defer c.RUnlock()
+
+	if c.Info.Version != "" {
 		return c.Info.Version
 	}
 	return ""
+}
+
+func (c *Config) SetLogEnable(enable bool) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.Logger == nil {
+		logger.CfgLog.Warnf("Logger should not be nil")
+		c.Logger = &Logger{
+			Enable: enable,
+			Level:  "info",
+		}
+	} else {
+		c.Logger.Enable = enable
+	}
+}
+
+func (c *Config) SetLogLevel(level string) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.Logger == nil {
+		logger.CfgLog.Warnf("Logger should not be nil")
+		c.Logger = &Logger{
+			Level: level,
+		}
+	} else {
+		c.Logger.Level = level
+	}
+}
+
+func (c *Config) SetLogReportCaller(reportCaller bool) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.Logger == nil {
+		logger.CfgLog.Warnf("Logger should not be nil")
+		c.Logger = &Logger{
+			Level:        "info",
+			ReportCaller: reportCaller,
+		}
+	} else {
+		c.Logger.ReportCaller = reportCaller
+	}
+}
+
+func (c *Config) GetLogEnable() bool {
+	c.RLock()
+	defer c.RUnlock()
+	if c.Logger == nil {
+		logger.CfgLog.Warnf("Logger should not be nil")
+		return false
+	}
+	return c.Logger.Enable
+}
+
+func (c *Config) GetLogLevel() string {
+	c.RLock()
+	defer c.RUnlock()
+	if c.Logger == nil {
+		logger.CfgLog.Warnf("Logger should not be nil")
+		return "info"
+	}
+	return c.Logger.Level
+}
+
+func (c *Config) GetLogReportCaller() bool {
+	c.RLock()
+	defer c.RUnlock()
+	if c.Logger == nil {
+		logger.CfgLog.Warnf("Logger should not be nil")
+		return false
+	}
+	return c.Logger.ReportCaller
 }

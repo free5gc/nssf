@@ -1,85 +1,43 @@
 package logger
 
 import (
-	"os"
-	"time"
-
-	formatter "github.com/antonfisher/nested-logrus-formatter"
 	"github.com/sirupsen/logrus"
 
 	logger_util "github.com/free5gc/util/logger"
 )
 
 var (
-	log               *logrus.Logger
-	AppLog            *logrus.Entry
-	CfgLog            *logrus.Entry
-	ContextLog        *logrus.Entry
-	FactoryLog        *logrus.Entry
-	HandlerLog        *logrus.Entry
-	InitLog           *logrus.Entry
-	Nsselection       *logrus.Entry
-	Nssaiavailability *logrus.Entry
-	Util              *logrus.Entry
-	ConsumerLog       *logrus.Entry
-	GinLog            *logrus.Entry
+	Log           *logrus.Logger
+	NfLog         *logrus.Entry
+	MainLog       *logrus.Entry
+	InitLog       *logrus.Entry
+	CfgLog        *logrus.Entry
+	CtxLog        *logrus.Entry
+	GinLog        *logrus.Entry
+	SBILog        *logrus.Entry
+	ConsumerLog   *logrus.Entry
+	ProcLog       *logrus.Entry
+	NsselLog      *logrus.Entry
+	NssaiavailLog *logrus.Entry
+	UtilLog       *logrus.Entry
 )
 
 func init() {
-	log = logrus.New()
-	log.SetReportCaller(false)
-
-	log.Formatter = &formatter.Formatter{
-		TimestampFormat: time.RFC3339Nano,
-		TrimMessages:    true,
-		NoFieldsSpace:   true,
-		HideKeys:        true,
-		FieldsOrder:     []string{"component", "category"},
+	fieldsOrder := []string{
+		logger_util.FieldNF,
+		logger_util.FieldCategory,
 	}
-
-	AppLog = log.WithFields(logrus.Fields{"component": "NSSF", "category": "App"})
-	ContextLog = log.WithFields(logrus.Fields{"component": "NSSF", "category": "CTX"})
-	FactoryLog = log.WithFields(logrus.Fields{"component": "NSSF", "category": "Factory"})
-	HandlerLog = log.WithFields(logrus.Fields{"component": "NSSF", "category": "HDLR"})
-	InitLog = log.WithFields(logrus.Fields{"component": "NSSF", "category": "Init"})
-	CfgLog = log.WithFields(logrus.Fields{"component": "NSSF", "category": "CFG"})
-	Nsselection = log.WithFields(logrus.Fields{"component": "NSSF", "category": "NsSelect"})
-	Nssaiavailability = log.WithFields(logrus.Fields{"component": "NSSF", "category": "NssaiAvail"})
-	Util = log.WithFields(logrus.Fields{"component": "NSSF", "category": "Util"})
-	ConsumerLog = log.WithFields(logrus.Fields{"component": "NSSF", "category": "Consumer"})
-	GinLog = log.WithFields(logrus.Fields{"component": "NSSF", "category": "GIN"})
-}
-
-func LogFileHook(logNfPath string, log5gcPath string) error {
-	if fullPath, err := logger_util.CreateFree5gcLogFile(log5gcPath); err == nil {
-		if fullPath != "" {
-			free5gcLogHook, hookErr := logger_util.NewFileHook(fullPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)
-			if hookErr != nil {
-				return hookErr
-			}
-			log.Hooks.Add(free5gcLogHook)
-		}
-	} else {
-		return err
-	}
-
-	if fullPath, err := logger_util.CreateNfLogFile(logNfPath, "nssf.log"); err == nil {
-		selfLogHook, hookErr := logger_util.NewFileHook(fullPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o666)
-		if hookErr != nil {
-			return hookErr
-		}
-		log.Hooks.Add(selfLogHook)
-	} else {
-		return err
-	}
-
-	return nil
-}
-
-func SetLogLevel(level logrus.Level) {
-	log.SetLevel(level)
-}
-
-func SetReportCaller(enable bool) {
-	log.SetReportCaller(enable)
+	Log = logger_util.New(fieldsOrder)
+	NfLog = Log.WithField(logger_util.FieldNF, "NSSF")
+	MainLog = NfLog.WithField(logger_util.FieldCategory, "Main")
+	InitLog = NfLog.WithField(logger_util.FieldCategory, "Init")
+	CfgLog = NfLog.WithField(logger_util.FieldCategory, "CFG")
+	CtxLog = NfLog.WithField(logger_util.FieldCategory, "CTX")
+	GinLog = NfLog.WithField(logger_util.FieldCategory, "GIN")
+	SBILog = NfLog.WithField(logger_util.FieldCategory, "SBI")
+	ConsumerLog = NfLog.WithField(logger_util.FieldCategory, "Consumer")
+	ProcLog = NfLog.WithField(logger_util.FieldCategory, "Proc")
+	NsselLog = NfLog.WithField(logger_util.FieldCategory, "NsSel")
+	NssaiavailLog = NfLog.WithField(logger_util.FieldCategory, "NssaiAvail")
+	UtilLog = NfLog.WithField(logger_util.FieldCategory, "Util")
 }

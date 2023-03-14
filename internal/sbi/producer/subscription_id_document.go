@@ -19,7 +19,7 @@ import (
 
 // HandleNSSAIAvailabilityUnsubscribe - Deletes an already existing NSSAI availability notification subscription
 func HandleNSSAIAvailabilityUnsubscribe(request *httpwrapper.Request) *httpwrapper.Response {
-	logger.Nssaiavailability.Infof("Handle NSSAIAvailabilityUnsubscribe")
+	logger.NssaiavailLog.Infof("Handle NSSAIAvailabilityUnsubscribe")
 
 	subscriptionID := request.Params["subscriptionId"]
 
