@@ -22,15 +22,6 @@ const (
 	UNSUPPORTED_RESOURCE  = "Unsupported request resources"
 )
 
-// Path of HTTP2 key and log file
-// Default configuration file
-const (
-	NssfDefaultKeyLogPath = "./log/nssfsslkey.log"
-	NssfDefaultPemPath    = "./config/TLS/nssf.pem"
-	NssfDefaultKeyPath    = "./config/TLS/nssf.key"
-	NssfDefaultConfigPath = "./config/nssfcfg.yaml"
-)
-
 // Check if a slice contains an element
 func Contain(target interface{}, slice interface{}) bool {
 	arr := reflect.ValueOf(slice)
@@ -46,21 +37,21 @@ func Contain(target interface{}, slice interface{}) bool {
 
 // Check whether UE's Home PLMN is configured/supported
 func CheckSupportedHplmn(homePlmnId models.PlmnId) bool {
-	factory.ConfigLock.RLock()
-	defer factory.ConfigLock.RUnlock()
+	factory.NssfConfig.RLock()
+	defer factory.NssfConfig.RUnlock()
 	for _, mappingFromPlmn := range factory.NssfConfig.Configuration.MappingListFromPlmn {
 		if *mappingFromPlmn.HomePlmnId == homePlmnId {
 			return true
 		}
 	}
-	logger.Util.Warnf("No Home PLMN %+v in NSSF configuration", homePlmnId)
+	logger.UtilLog.Warnf("No Home PLMN %+v in NSSF configuration", homePlmnId)
 	return false
 }
 
 // Check whether UE's current TA is configured/supported
 func CheckSupportedTa(tai models.Tai) bool {
-	factory.ConfigLock.RLock()
-	defer factory.ConfigLock.RUnlock()
+	factory.NssfConfig.RLock()
+	defer factory.NssfConfig.RUnlock()
 	for _, taConfig := range factory.NssfConfig.Configuration.TaList {
 		if reflect.DeepEqual(*taConfig.Tai, tai) {
 			return true
@@ -68,16 +59,16 @@ func CheckSupportedTa(tai models.Tai) bool {
 	}
 	e, err := json.Marshal(tai)
 	if err != nil {
-		logger.Util.Errorf("Marshal error in CheckSupportedTa: %+v", err)
+		logger.UtilLog.Errorf("Marshal error in CheckSupportedTa: %+v", err)
 	}
-	logger.Util.Warnf("No TA %s in NSSF configuration", e)
+	logger.UtilLog.Warnf("No TA %s in NSSF configuration", e)
 	return false
 }
 
 // Check whether the given S-NSSAI is supported or not in PLMN
 func CheckSupportedSnssaiInPlmn(snssai models.Snssai, plmnId models.PlmnId) bool {
-	factory.ConfigLock.RLock()
-	defer factory.ConfigLock.RUnlock()
+	factory.NssfConfig.RLock()
+	defer factory.NssfConfig.RUnlock()
 	if CheckStandardSnssai(snssai) {
 		return true
 	}
@@ -92,14 +83,14 @@ func CheckSupportedSnssaiInPlmn(snssai models.Snssai, plmnId models.PlmnId) bool
 			return false
 		}
 	}
-	logger.Util.Warnf("No supported S-NSSAI list of PLMNID %+v in NSSF configuration", plmnId)
+	logger.UtilLog.Warnf("No supported S-NSSAI list of PLMNID %+v in NSSF configuration", plmnId)
 	return false
 }
 
 // Check whether S-NSSAIs in NSSAI are supported or not in PLMN
 func CheckSupportedNssaiInPlmn(nssai []models.Snssai, plmnId models.PlmnId) bool {
-	factory.ConfigLock.RLock()
-	defer factory.ConfigLock.RUnlock()
+	factory.NssfConfig.RLock()
+	defer factory.NssfConfig.RUnlock()
 	for _, supportedNssaiInPlmn := range factory.NssfConfig.Configuration.SupportedNssaiInPlmnList {
 		if *supportedNssaiInPlmn.PlmnId == plmnId {
 			for _, snssai := range nssai {
@@ -124,14 +115,14 @@ func CheckSupportedNssaiInPlmn(nssai []models.Snssai, plmnId models.PlmnId) bool
 			return true
 		}
 	}
-	logger.Util.Warnf("No supported S-NSSAI list of PLMNID %+v in NSSF configuration", plmnId)
+	logger.UtilLog.Warnf("No supported S-NSSAI list of PLMNID %+v in NSSF configuration", plmnId)
 	return false
 }
 
 // Check whether S-NSSAI is supported or not at UE's current TA
 func CheckSupportedSnssaiInTa(snssai models.Snssai, tai models.Tai) bool {
-	factory.ConfigLock.RLock()
-	defer factory.ConfigLock.RUnlock()
+	factory.NssfConfig.RLock()
+	defer factory.NssfConfig.RUnlock()
 	for _, taConfig := range factory.NssfConfig.Configuration.TaList {
 		if reflect.DeepEqual(*taConfig.Tai, tai) {
 			for _, supportedSnssai := range taConfig.SupportedSnssaiList {
@@ -181,7 +172,7 @@ func CheckSupportedSnssaiInAmfTa(snssai models.Snssai, nfId string, tai models.T
 		}
 	}
 
-	logger.Util.Warnf("No AMF %s in NSSF configuration", nfId)
+	logger.UtilLog.Warnf("No AMF %s in NSSF configuration", nfId)
 	return false
 }
 
@@ -220,8 +211,8 @@ func CheckSnssaiInNssai(targetSnssai models.Snssai, nssai []models.Snssai) bool 
 
 // Get S-NSSAI mappings of the given Home PLMN ID from configuration
 func GetMappingOfPlmnFromConfig(homePlmnId models.PlmnId) []models.MappingOfSnssai {
-	factory.ConfigLock.RLock()
-	defer factory.ConfigLock.RUnlock()
+	factory.NssfConfig.RLock()
+	defer factory.NssfConfig.RUnlock()
 	for _, mappingFromPlmn := range factory.NssfConfig.Configuration.MappingListFromPlmn {
 		if *mappingFromPlmn.HomePlmnId == homePlmnId {
 			return mappingFromPlmn.MappingOfSnssai
@@ -232,8 +223,8 @@ func GetMappingOfPlmnFromConfig(homePlmnId models.PlmnId) []models.MappingOfSnss
 
 // Get NSI information list of the given S-NSSAI from configuration
 func GetNsiInformationListFromConfig(snssai models.Snssai) []models.NsiInformation {
-	factory.ConfigLock.RLock()
-	defer factory.ConfigLock.RUnlock()
+	factory.NssfConfig.RLock()
+	defer factory.NssfConfig.RUnlock()
 	for _, nsiConfig := range factory.NssfConfig.Configuration.NsiList {
 		if *nsiConfig.Snssai == snssai {
 			return nsiConfig.NsiInformationList
@@ -244,8 +235,8 @@ func GetNsiInformationListFromConfig(snssai models.Snssai) []models.NsiInformati
 
 // Get Access Type of the given TAI from configuraion
 func GetAccessTypeFromConfig(tai models.Tai) models.AccessType {
-	factory.ConfigLock.RLock()
-	defer factory.ConfigLock.RUnlock()
+	factory.NssfConfig.RLock()
+	defer factory.NssfConfig.RUnlock()
 	for _, taConfig := range factory.NssfConfig.Configuration.TaList {
 		if reflect.DeepEqual(*taConfig.Tai, tai) {
 			return *taConfig.AccessType
@@ -253,16 +244,16 @@ func GetAccessTypeFromConfig(tai models.Tai) models.AccessType {
 	}
 	e, err := json.Marshal(tai)
 	if err != nil {
-		logger.Util.Errorf("Marshal error in GetAccessTypeFromConfig: %+v", err)
+		logger.UtilLog.Errorf("Marshal error in GetAccessTypeFromConfig: %+v", err)
 	}
-	logger.Util.Warnf("No TA %s in NSSF configuration", e)
+	logger.UtilLog.Warnf("No TA %s in NSSF configuration", e)
 	return models.AccessType__3_GPP_ACCESS
 }
 
 // Get restricted S-NSSAI list of the given TAI from configuration
 func GetRestrictedSnssaiListFromConfig(tai models.Tai) []models.RestrictedSnssai {
-	factory.ConfigLock.RLock()
-	defer factory.ConfigLock.RUnlock()
+	factory.NssfConfig.RLock()
+	defer factory.NssfConfig.RUnlock()
 	for _, taConfig := range factory.NssfConfig.Configuration.TaList {
 		if reflect.DeepEqual(*taConfig.Tai, tai) {
 			if taConfig.RestrictedSnssaiList != nil && len(taConfig.RestrictedSnssaiList) != 0 {
@@ -274,9 +265,9 @@ func GetRestrictedSnssaiListFromConfig(tai models.Tai) []models.RestrictedSnssai
 	}
 	e, err := json.Marshal(tai)
 	if err != nil {
-		logger.Util.Errorf("Marshal error in GetRestrictedSnssaiListFromConfig: %+v", err)
+		logger.UtilLog.Errorf("Marshal error in GetRestrictedSnssaiListFromConfig: %+v", err)
 	}
-	logger.Util.Warnf("No TA %s in NSSF configuration", e)
+	logger.UtilLog.Warnf("No TA %s in NSSF configuration", e)
 	return nil
 }
 
@@ -299,7 +290,7 @@ func AuthorizeOfAmfTaFromConfig(nfId string, tai models.Tai) (models.AuthorizedN
 			}
 			e, err1 := json.Marshal(tai)
 			if err1 != nil {
-				logger.Util.Errorf("Marshal error in AuthorizeOfAmfTaFromConfig: %+v", err1)
+				logger.UtilLog.Errorf("Marshal error in AuthorizeOfAmfTaFromConfig: %+v", err1)
 			}
 			err := fmt.Errorf("No supported S-NSSAI list by AMF %s under TAI %s in NSSF configuration", nfId, e)
 			return authorizedNssaiAvailabilityData, err
@@ -313,8 +304,8 @@ func AuthorizeOfAmfTaFromConfig(nfId string, tai models.Tai) (models.AuthorizedN
 func AuthorizeOfAmfFromConfig(nfId string) ([]models.AuthorizedNssaiAvailabilityData, error) {
 	var authorizedNssaiAvailabilityDataList []models.AuthorizedNssaiAvailabilityData
 
-	factory.ConfigLock.RLock()
-	defer factory.ConfigLock.RUnlock()
+	factory.NssfConfig.RLock()
+	defer factory.NssfConfig.RUnlock()
 	for _, amfConfig := range factory.NssfConfig.Configuration.AmfList {
 		if amfConfig.NfId == nfId {
 			for _, supportedNssaiAvailabilityData := range amfConfig.SupportedNssaiAvailabilityData {
@@ -402,7 +393,7 @@ func AddAllowedSnssai(allowedSnssai models.AllowedSnssai, accessType models.Acce
 		if authorizedNetworkSliceInfo.AllowedNssaiList[i].AccessType == accessType {
 			hitAllowedNssai = true
 			if len(authorizedNetworkSliceInfo.AllowedNssaiList[i].AllowedSnssaiList) == 8 {
-				logger.Util.Infof("Unable to add a new Allowed S-NSSAI since already eight S-NSSAIs in Allowed NSSAI")
+				logger.UtilLog.Infof("Unable to add a new Allowed S-NSSAI since already eight S-NSSAIs in Allowed NSSAI")
 			} else {
 				authorizedNetworkSliceInfo.AllowedNssaiList[i].AllowedSnssaiList = append(
 					authorizedNetworkSliceInfo.AllowedNssaiList[i].AllowedSnssaiList,
@@ -423,8 +414,8 @@ func AddAllowedSnssai(allowedSnssai models.AllowedSnssai, accessType models.Acce
 
 // Add AMF information to Authorized Network Slice Info
 func AddAmfInformation(tai models.Tai, authorizedNetworkSliceInfo *models.AuthorizedNetworkSliceInfo) {
-	factory.ConfigLock.RLock()
-	defer factory.ConfigLock.RUnlock()
+	factory.NssfConfig.RLock()
+	defer factory.NssfConfig.RUnlock()
 	if authorizedNetworkSliceInfo.AllowedNssaiList == nil || len(authorizedNetworkSliceInfo.AllowedNssaiList) == 0 {
 		return
 	}
@@ -501,6 +492,6 @@ func AddAmfInformation(tai models.Tai, authorizedNetworkSliceInfo *models.Author
 	}
 
 	if !hitAmf {
-		logger.Util.Warnf("No candidate AMF or AMF Set can serve the UE")
+		logger.UtilLog.Warnf("No candidate AMF or AMF Set can serve the UE")
 	}
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/free5gc/nssf/internal/logger"
+	"github.com/free5gc/nssf/pkg/factory"
 	logger_util "github.com/free5gc/util/logger"
 )
 
@@ -42,7 +43,7 @@ func NewRouter() *gin.Engine {
 }
 
 func AddService(engine *gin.Engine) *gin.RouterGroup {
-	group := engine.Group("/nnssf-nssaiavailability/v1")
+	group := engine.Group(factory.NssfNssaiavailResUriPrefix)
 
 	for _, route := range routes {
 		switch route.Method {

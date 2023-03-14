@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -9,18 +8,19 @@ import (
 	"github.com/urfave/cli"
 
 	"github.com/free5gc/nssf/internal/logger"
-	"github.com/free5gc/nssf/internal/util"
+	"github.com/free5gc/nssf/pkg/factory"
 	"github.com/free5gc/nssf/pkg/service"
+	logger_util "github.com/free5gc/util/logger"
 	"github.com/free5gc/util/version"
 )
 
-var NSSF = &service.NSSF{}
+var NSSF *service.NssfApp
 
 func main() {
 	defer func() {
 		if p := recover(); p != nil {
 			// Print stack for panic to log. Fatalf() will let program exit.
-			logger.AppLog.Fatalf("panic: %v\n%s", p, string(debug.Stack()))
+			logger.MainLog.Fatalf("panic: %v\n%s", p, string(debug.Stack()))
 		}
 	}()
 
@@ -28,48 +28,65 @@ func main() {
 	app.Name = "nssf"
 	app.Usage = "5G Network Slice Selection Function (NSSF)"
 	app.Action = action
-	app.Flags = NSSF.GetCliCmd()
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "config, c",
+			Usage: "Load configuration from `FILE`",
+		},
+		cli.StringSliceFlag{
+			Name:  "log, l",
+			Usage: "Output NF log to `FILE`",
+		},
+	}
 	if err := app.Run(os.Args); err != nil {
-		logger.AppLog.Errorf("NSSF Run Error: %v\n", err)
+		logger.MainLog.Errorf("NSSF Run Error: %v\n", err)
 	}
 }
 
-func action(c *cli.Context) error {
-	if err := initLogFile(c.String("log"), c.String("log5gc")); err != nil {
-		logger.AppLog.Errorf("%+v", err)
+func action(cliCtx *cli.Context) error {
+	tlsKeyLogPath, err := initLogFile(cliCtx.StringSlice("log"))
+	if err != nil {
 		return err
 	}
 
-	if err := NSSF.Initialize(c); err != nil {
-		logger.CfgLog.Errorf("%+v", err)
-		return fmt.Errorf("Failed to initialize !!")
+	logger.MainLog.Infoln("NSSF version: ", version.GetVersion())
+	cfg, err := factory.ReadConfig(cliCtx.String("config"))
+	if err != nil {
+		return err
 	}
+	factory.NssfConfig = cfg
 
-	logger.AppLog.Infoln(c.App.Name)
-	logger.AppLog.Infoln("NSSF version: ", version.GetVersion())
+	nssf, err := service.NewApp(cfg)
+	if err != nil {
+		return err
+	}
+	NSSF = nssf
 
-	NSSF.Start()
+	nssf.Start(tlsKeyLogPath)
 
 	return nil
 }
 
-func initLogFile(logNfPath, log5gcPath string) error {
-	NSSF.KeyLogPath = util.NssfDefaultKeyLogPath
+func initLogFile(logNfPath []string) (string, error) {
+	logTlsKeyPath := ""
 
-	if err := logger.LogFileHook(logNfPath, log5gcPath); err != nil {
-		return err
-	}
+	for _, path := range logNfPath {
+		if err := logger_util.LogFileHook(logger.Log, path); err != nil {
+			return "", err
+		}
 
-	if logNfPath != "" {
-		nfDir, _ := filepath.Split(logNfPath)
+		if logTlsKeyPath != "" {
+			continue
+		}
+		nfDir, _ := filepath.Split(path)
 		tmpDir := filepath.Join(nfDir, "key")
 		if err := os.MkdirAll(tmpDir, 0o775); err != nil {
 			logger.InitLog.Errorf("Make directory %s failed: %+v", tmpDir, err)
-			return err
+			return "", err
 		}
-		_, name := filepath.Split(util.NssfDefaultKeyLogPath)
-		NSSF.KeyLogPath = filepath.Join(tmpDir, name)
+		_, name := filepath.Split(factory.NssfDefaultTLSKeyLogPath)
+		logTlsKeyPath = filepath.Join(tmpDir, name)
 	}
 
-	return nil
+	return logTlsKeyPath, nil
 }

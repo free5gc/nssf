@@ -7,49 +7,46 @@ package factory
 import (
 	"fmt"
 	"io/ioutil"
-	"sync"
 
+	"github.com/asaskevich/govalidator"
 	"gopkg.in/yaml.v2"
 
 	"github.com/free5gc/nssf/internal/logger"
 )
 
-var (
-	NssfConfig Config
-	Configured bool
-	ConfigLock sync.RWMutex
-)
-
-func init() {
-	Configured = false
-}
+var NssfConfig *Config
 
 // TODO: Support configuration update from REST api
-func InitConfigFactory(f string) error {
+func InitConfigFactory(f string, cfg *Config) error {
+	if f == "" {
+		// Use default config path
+		f = NssfDefaultConfigPath
+	}
+
 	if content, err := ioutil.ReadFile(f); err != nil {
-		return err
+		return fmt.Errorf("[Factory] %+v", err)
 	} else {
-		NssfConfig = Config{}
-
-		if yamlErr := yaml.Unmarshal(content, &NssfConfig); yamlErr != nil {
-			return yamlErr
+		logger.CfgLog.Infof("Read config from [%s]", f)
+		if yamlErr := yaml.Unmarshal(content, cfg); yamlErr != nil {
+			return fmt.Errorf("[Factory] %+v", yamlErr)
 		}
-
-		Configured = true
 	}
 
 	return nil
 }
 
-func CheckConfigVersion() error {
-	currentVersion := NssfConfig.GetVersion()
-
-	if currentVersion != NSSF_EXPECTED_CONFIG_VERSION {
-		return fmt.Errorf("config version is [%s], but expected is [%s].",
-			currentVersion, NSSF_EXPECTED_CONFIG_VERSION)
+func ReadConfig(cfgPath string) (*Config, error) {
+	cfg := &Config{}
+	if err := InitConfigFactory(cfgPath, cfg); err != nil {
+		return nil, fmt.Errorf("ReadConfig [%s] Error: %+v", cfgPath, err)
 	}
-
-	logger.CfgLog.Infof("config version [%s]", currentVersion)
-
-	return nil
+	if _, err := cfg.Validate(); err != nil {
+		validErrs := err.(govalidator.Errors).Errors()
+		for _, validErr := range validErrs {
+			logger.CfgLog.Errorf("%+v", validErr)
+		}
+		logger.CfgLog.Errorf("[-- PLEASE REFER TO SAMPLE CONFIG FILE COMMENTS --]")
+		return nil, fmt.Errorf("Config validate Error")
+	}
+	return cfg, nil
 }

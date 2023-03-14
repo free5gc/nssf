@@ -26,7 +26,7 @@ func HTTPNSSAIAvailabilityUnsubscribe(c *gin.Context) {
 	nfID := c.Param("nfId")
 	if nfID != "subscriptions" {
 		c.JSON(http.StatusNotFound, gin.H{})
-		logger.Nssaiavailability.Infof("404 Not Found")
+		logger.NssaiavailLog.Infof("404 Not Found")
 		return
 	}
 
@@ -37,7 +37,7 @@ func HTTPNSSAIAvailabilityUnsubscribe(c *gin.Context) {
 
 	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
 	if err != nil {
-		logger.HandlerLog.Errorln(err)
+		logger.NssaiavailLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
 			Status: http.StatusInternalServerError,
 			Cause:  "SYSTEM_FAILURE",

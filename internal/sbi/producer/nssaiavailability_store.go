@@ -54,7 +54,7 @@ func NSSAIAvailabilityPatchProcedure(nssaiAvailabilityUpdateInfo plugin.PatchDoc
 	var amfIdx int
 	var original []byte
 	hitAmf := false
-	factory.ConfigLock.RLock()
+	factory.NssfConfig.RLock()
 	for amfIdx, amfConfig := range factory.NssfConfig.Configuration.AmfList {
 		if amfConfig.NfId == nfId {
 			// Since json-patch package does not have idea of optional field of datatype,
@@ -71,7 +71,7 @@ func NSSAIAvailabilityPatchProcedure(nssaiAvailabilityUpdateInfo plugin.PatchDoc
 			var err error
 			original, err = json.Marshal(temp)
 			if err != nil {
-				logger.Nssaiavailability.Errorf("Marshal error in NSSAIAvailabilityPatchProcedure: %+v", err)
+				logger.NssaiavailLog.Errorf("Marshal error in NSSAIAvailabilityPatchProcedure: %+v", err)
 			}
 			original = bytes.ReplaceAll(original, []byte(dummyString), []byte(""))
 
@@ -81,7 +81,7 @@ func NSSAIAvailabilityPatchProcedure(nssaiAvailabilityUpdateInfo plugin.PatchDoc
 			break
 		}
 	}
-	factory.ConfigLock.RUnlock()
+	factory.NssfConfig.RUnlock()
 	if !hitAmf {
 		*problemDetails = models.ProblemDetails{
 			Title:  util.UNSUPPORTED_RESOURCE,
@@ -105,7 +105,7 @@ func NSSAIAvailabilityPatchProcedure(nssaiAvailabilityUpdateInfo plugin.PatchDoc
 	}
 	patchJSON, err := json.Marshal(nssaiAvailabilityUpdateInfo)
 	if err != nil {
-		logger.Nssaiavailability.Errorf("Marshal error in NSSAIAvailabilityPatchProcedure: %+v", err)
+		logger.NssaiavailLog.Errorf("Marshal error in NSSAIAvailabilityPatchProcedure: %+v", err)
 	}
 
 	patch, err := jsonpatch.DecodePatch(patchJSON)
@@ -128,9 +128,9 @@ func NSSAIAvailabilityPatchProcedure(nssaiAvailabilityUpdateInfo plugin.PatchDoc
 		return nil, problemDetails
 	}
 
-	factory.ConfigLock.Lock()
+	factory.NssfConfig.Lock()
 	err = json.Unmarshal(modified, &factory.NssfConfig.Configuration.AmfList[amfIdx].SupportedNssaiAvailabilityData)
-	factory.ConfigLock.Unlock()
+	factory.NssfConfig.Unlock()
 	if err != nil {
 		*problemDetails = models.ProblemDetails{
 			Title:  util.INVALID_REQUEST,
@@ -143,7 +143,7 @@ func NSSAIAvailabilityPatchProcedure(nssaiAvailabilityUpdateInfo plugin.PatchDoc
 	// Return all authorized NSSAI availability information
 	response.AuthorizedNssaiAvailabilityData, err = util.AuthorizeOfAmfFromConfig(nfId)
 	if err != nil {
-		logger.Nssaiavailability.Errorf("util AuthorizeOfAmfFromConfig error in NSSAIAvailabilityPatchProcedure: %+v", err)
+		logger.NssaiavailLog.Errorf("util AuthorizeOfAmfFromConfig error in NSSAIAvailabilityPatchProcedure: %+v", err)
 	}
 
 	// TODO: Return authorized NSSAI availability information of updated TAI only
@@ -178,7 +178,7 @@ func NSSAIAvailabilityPutProcedure(nssaiAvailabilityInfo models.NssaiAvailabilit
 	hitAmf := false
 	// Find AMF configuration of given NfId
 	// If found, then update the SupportedNssaiAvailabilityData
-	factory.ConfigLock.Lock()
+	factory.NssfConfig.Lock()
 	for i, amfConfig := range factory.NssfConfig.Configuration.AmfList {
 		if amfConfig.NfId == nfId {
 			factory.NssfConfig.Configuration.AmfList[i].SupportedNssaiAvailabilityData = nssaiAvailabilityInfo.
@@ -188,18 +188,18 @@ func NSSAIAvailabilityPutProcedure(nssaiAvailabilityInfo models.NssaiAvailabilit
 			break
 		}
 	}
-	factory.ConfigLock.Unlock()
+	factory.NssfConfig.Unlock()
 
 	// If no AMF record is found, create a new one
 	if !hitAmf {
 		var amfConfig factory.AmfConfig
 		amfConfig.NfId = nfId
 		amfConfig.SupportedNssaiAvailabilityData = nssaiAvailabilityInfo.SupportedNssaiAvailabilityData
-		factory.ConfigLock.Lock()
+		factory.NssfConfig.Lock()
 		factory.NssfConfig.Configuration.AmfList = append(
 			factory.NssfConfig.Configuration.AmfList,
 			amfConfig)
-		factory.ConfigLock.Unlock()
+		factory.NssfConfig.Unlock()
 	}
 
 	// Return all authorized NSSAI availability information
@@ -213,7 +213,7 @@ func NSSAIAvailabilityPutProcedure(nssaiAvailabilityInfo models.NssaiAvailabilit
 				response.AuthorizedNssaiAvailabilityData,
 				authorizedNssaiAvailabilityData)
 		} else {
-			logger.Nssaiavailability.Warnf(err.Error())
+			logger.NssaiavailLog.Warnf(err.Error())
 		}
 	}
 

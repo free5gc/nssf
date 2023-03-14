@@ -28,7 +28,7 @@ func HTTPNetworkSliceInformationDocument(c *gin.Context) {
 
 	responseBody, err := openapi.Serialize(rsp.Body, "application/json")
 	if err != nil {
-		logger.HandlerLog.Errorln(err)
+		logger.NsselLog.Errorln(err)
 		problemDetails := models.ProblemDetails{
 			Status: http.StatusInternalServerError,
 			Cause:  "SYSTEM_FAILURE",

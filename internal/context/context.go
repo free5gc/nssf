@@ -23,14 +23,14 @@ import (
 var nssfContext = NSSFContext{}
 
 // Initialize NSSF context with default value
-func init() {
+func Init() {
 	nssfContext.NfId = uuid.New().String()
 
 	nssfContext.Name = "NSSF"
 
 	nssfContext.UriScheme = models.UriScheme_HTTPS
-	nssfContext.RegisterIPv4 = factory.NSSF_DEFAULT_IPV4
-	nssfContext.SBIPort = factory.NSSF_DEFAULT_PORT_INT
+	nssfContext.RegisterIPv4 = factory.NssfSbiDefaultIPv4
+	nssfContext.SBIPort = factory.NssfSbiDefaultPort
 
 	serviceName := []models.ServiceName{
 		models.ServiceName_NNSSF_NSSELECTION,
@@ -56,12 +56,7 @@ type NSSFContext struct {
 
 // Initialize NSSF context with configuration factory
 func InitNssfContext() {
-	if !factory.Configured {
-		logger.ContextLog.Warnf("NSSF is not configured")
-		return
-	}
 	nssfConfig := factory.NssfConfig
-
 	if nssfConfig.Configuration.NssfName != "" {
 		nssfContext.Name = nssfConfig.Configuration.NssfName
 	}
@@ -71,11 +66,11 @@ func InitNssfContext() {
 	nssfContext.SBIPort = nssfConfig.Configuration.Sbi.Port
 	nssfContext.BindingIPv4 = os.Getenv(nssfConfig.Configuration.Sbi.BindingIPv4)
 	if nssfContext.BindingIPv4 != "" {
-		logger.ContextLog.Info("Parsing ServerIPv4 address from ENV Variable.")
+		logger.CtxLog.Info("Parsing ServerIPv4 address from ENV Variable.")
 	} else {
 		nssfContext.BindingIPv4 = nssfConfig.Configuration.Sbi.BindingIPv4
 		if nssfContext.BindingIPv4 == "" {
-			logger.ContextLog.Warn("Error parsing ServerIPv4 address as string. Using the 0.0.0.0 address as default.")
+			logger.CtxLog.Warn("Error parsing ServerIPv4 address as string. Using the 0.0.0.0 address as default.")
 			nssfContext.BindingIPv4 = "0.0.0.0"
 		}
 	}
@@ -127,6 +122,6 @@ func GetIpv4Uri() string {
 	return fmt.Sprintf("%s://%s:%d", nssfContext.UriScheme, nssfContext.RegisterIPv4, nssfContext.SBIPort)
 }
 
-func NSSF_Self() *NSSFContext {
+func GetSelf() *NSSFContext {
 	return &nssfContext
 }

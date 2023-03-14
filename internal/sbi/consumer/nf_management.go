@@ -75,9 +75,9 @@ func SendRegisterNFInstance(nrfUri, nfInstanceId string, profile models.NfProfil
 }
 
 func SendDeregisterNFInstance() (*models.ProblemDetails, error) {
-	logger.AppLog.Infof("Send Deregister NFInstance")
+	logger.ConsumerLog.Infof("Send Deregister NFInstance")
 
-	nssfSelf := nssf_context.NSSF_Self()
+	nssfSelf := nssf_context.GetSelf()
 	// Set client and set url
 	configuration := Nnrf_NFManagement.NewConfiguration()
 	configuration.SetBasePath(nssfSelf.NrfUri)

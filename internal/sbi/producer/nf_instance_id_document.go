@@ -21,7 +21,7 @@ import (
 // HandleNSSAIAvailabilityDelete - Deletes an already existing S-NSSAIs per TA
 // provided by the NF service consumer (e.g AMF)
 func HandleNSSAIAvailabilityDelete(request *httpwrapper.Request) *httpwrapper.Response {
-	logger.Nssaiavailability.Infof("Handle NSSAIAvailabilityDelete")
+	logger.NssaiavailLog.Infof("Handle NSSAIAvailabilityDelete")
 
 	nfID := request.Params["nfId"]
 
@@ -36,7 +36,7 @@ func HandleNSSAIAvailabilityDelete(request *httpwrapper.Request) *httpwrapper.Re
 // HandleNSSAIAvailabilityPatch - Updates an already existing S-NSSAIs per TA
 // provided by the NF service consumer (e.g AMF)
 func HandleNSSAIAvailabilityPatch(request *httpwrapper.Request) *httpwrapper.Response {
-	logger.Nssaiavailability.Infof("Handle NSSAIAvailabilityPatch")
+	logger.NssaiavailLog.Infof("Handle NSSAIAvailabilityPatch")
 
 	nssaiAvailabilityUpdateInfo := request.Body.(plugin.PatchDocument)
 	nfID := request.Params["nfId"]
@@ -63,7 +63,7 @@ func HandleNSSAIAvailabilityPatch(request *httpwrapper.Request) *httpwrapper.Res
 // HandleNSSAIAvailabilityPut - Updates/replaces the NSSF
 // with the S-NSSAIs the NF service consumer (e.g AMF) supports per TA
 func HandleNSSAIAvailabilityPut(request *httpwrapper.Request) *httpwrapper.Response {
-	logger.Nssaiavailability.Infof("Handle NSSAIAvailabilityPut")
+	logger.NssaiavailLog.Infof("Handle NSSAIAvailabilityPut")
 
 	nssaiAvailabilityInfo := request.Body.(models.NssaiAvailabilityInfo)
 	nfID := request.Params["nfId"]
