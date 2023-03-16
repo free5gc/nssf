@@ -90,8 +90,8 @@ func (a *NssfApp) Start(tlsKeyLogPath string) {
 	nssaiavailability.AddService(router)
 	nsselection.AddService(router)
 
-	pemPath := factory.NssfDefaultTLSPemPath
-	keyPath := factory.NssfDefaultTLSKeyPath
+	pemPath := factory.NssfDefaultCertPemPath
+	keyPath := factory.NssfDefaultPrivateKeyPath
 	sbi := factory.NssfConfig.Configuration.Sbi
 	if sbi.Tls != nil {
 		pemPath = sbi.Tls.Pem

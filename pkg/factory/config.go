@@ -18,8 +18,8 @@ import (
 
 const (
 	NssfDefaultTLSKeyLogPath   = "./log/nssfsslkey.log"
-	NssfDefaultTLSPemPath      = "./config/TLS/nssf.pem"
-	NssfDefaultTLSKeyPath      = "./config/TLS/nssf.key"
+	NssfDefaultCertPemPath     = "./cert/nssf.pem"
+	NssfDefaultPrivateKeyPath  = "./cert/nssf.key"
 	NssfDefaultConfigPath      = "./config/nssfcfg.yaml"
 	NssfSbiDefaultIPv4         = "127.0.0.31"
 	NssfSbiDefaultPort         = 8000
