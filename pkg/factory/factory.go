@@ -7,6 +7,7 @@ package factory
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/asaskevich/govalidator"
 	"gopkg.in/yaml.v2"
@@ -15,6 +16,48 @@ import (
 )
 
 var NssfConfig *Config
+
+func changeSdToLowercase(cfg *Config) {
+	//supportedNssaiInPlmnList
+	for _, SupportedNssaiInPlmn := range cfg.Configuration.SupportedNssaiInPlmnList {
+		for _, SupportedSnssai := range SupportedNssaiInPlmn.SupportedSnssaiList {
+			SupportedSnssai.Sd = strings.ToLower(SupportedSnssai.Sd)
+		}
+	}
+	//nsiList
+	for _, Nsi := range cfg.Configuration.NsiList {
+		Nsi.Snssai.Sd = strings.ToLower(Nsi.Snssai.Sd)
+	}
+	//AmfSetList
+	for _, AmfSetConf := range cfg.Configuration.AmfSetList {
+		for _, AvailabilityData := range AmfSetConf.SupportedNssaiAvailabilityData {
+			for _, Snssai := range AvailabilityData.SupportedSnssaiList {
+				Snssai.Sd = strings.ToLower(Snssai.Sd)
+			}
+		}
+	}
+	//AmfList
+	for _, AmfConf := range cfg.Configuration.AmfList {
+		for _, AvailabilityData := range AmfConf.SupportedNssaiAvailabilityData {
+			for _, Snssai := range AvailabilityData.SupportedSnssaiList {
+				Snssai.Sd = strings.ToLower(Snssai.Sd)
+			}
+		}
+	}
+	//TaList
+	for _, TaConf := range cfg.Configuration.TaList {
+		for _, Snssai := range TaConf.SupportedSnssaiList {
+			Snssai.Sd = strings.ToLower(Snssai.Sd)
+		}
+	}
+	//MappingListFromPlmn
+	for _, MappingList := range cfg.Configuration.MappingListFromPlmn {
+		for _, Mapping := range MappingList.MappingOfSnssai {
+			Mapping.HomeSnssai.Sd = strings.ToLower(Mapping.HomeSnssai.Sd)
+			Mapping.ServingSnssai.Sd = strings.ToLower(Mapping.ServingSnssai.Sd)
+		}
+	}
+}
 
 // TODO: Support configuration update from REST api
 func InitConfigFactory(f string, cfg *Config) error {
@@ -31,6 +74,7 @@ func InitConfigFactory(f string, cfg *Config) error {
 			return fmt.Errorf("[Factory] %+v", yamlErr)
 		}
 	}
+	changeSdToLowercase(cfg)
 
 	return nil
 }
