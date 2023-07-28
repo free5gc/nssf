@@ -18,43 +18,61 @@ import (
 var NssfConfig *Config
 
 func changeSdToLowercase(cfg *Config) {
-	//supportedNssaiInPlmnList
-	for _, SupportedNssaiInPlmn := range cfg.Configuration.SupportedNssaiInPlmnList {
-		for _, SupportedSnssai := range SupportedNssaiInPlmn.SupportedSnssaiList {
-			SupportedSnssai.Sd = strings.ToLower(SupportedSnssai.Sd)
+	// supportedNssaiInPlmnList
+	SupportedNssaiInPlmnList := cfg.Configuration.SupportedNssaiInPlmnList
+	for i := range SupportedNssaiInPlmnList {
+		SupportedSnssaiList := SupportedNssaiInPlmnList[i].SupportedSnssaiList
+		for j := range SupportedSnssaiList {
+			SupportedSnssaiList[j].Sd = strings.ToLower(SupportedSnssaiList[j].Sd)
 		}
 	}
-	//nsiList
-	for _, Nsi := range cfg.Configuration.NsiList {
-		Nsi.Snssai.Sd = strings.ToLower(Nsi.Snssai.Sd)
+
+	// nsiList
+	NsiList := cfg.Configuration.NsiList
+	for i := range NsiList {
+		NsiList[i].Snssai.Sd = strings.ToLower(NsiList[i].Snssai.Sd)
 	}
-	//AmfSetList
-	for _, AmfSetConf := range cfg.Configuration.AmfSetList {
-		for _, AvailabilityData := range AmfSetConf.SupportedNssaiAvailabilityData {
-			for _, Snssai := range AvailabilityData.SupportedSnssaiList {
-				Snssai.Sd = strings.ToLower(Snssai.Sd)
+
+	// AmfSetList
+	AmfSetList := cfg.Configuration.AmfSetList
+	for i := range AmfSetList {
+		SupportedNssaiAvailabilityData := AmfSetList[i].SupportedNssaiAvailabilityData
+		for j := range SupportedNssaiAvailabilityData {
+			SupportedSnssaiList := SupportedNssaiAvailabilityData[j].SupportedSnssaiList
+			for k := range SupportedSnssaiList {
+				SupportedSnssaiList[k].Sd = strings.ToLower(SupportedSnssaiList[k].Sd)
 			}
 		}
 	}
-	//AmfList
-	for _, AmfConf := range cfg.Configuration.AmfList {
-		for _, AvailabilityData := range AmfConf.SupportedNssaiAvailabilityData {
-			for _, Snssai := range AvailabilityData.SupportedSnssaiList {
-				Snssai.Sd = strings.ToLower(Snssai.Sd)
+
+	// AmfList
+	AmfList := cfg.Configuration.AmfList
+	for i := range AmfList {
+		SupportedNssaiAvailabilityData := AmfList[i].SupportedNssaiAvailabilityData
+		for j := range SupportedNssaiAvailabilityData {
+			SupportedSnssaiList := SupportedNssaiAvailabilityData[j].SupportedSnssaiList
+			for k := range SupportedSnssaiList {
+				SupportedSnssaiList[k].Sd = strings.ToLower(SupportedSnssaiList[k].Sd)
 			}
 		}
 	}
-	//TaList
-	for _, TaConf := range cfg.Configuration.TaList {
-		for _, Snssai := range TaConf.SupportedSnssaiList {
-			Snssai.Sd = strings.ToLower(Snssai.Sd)
+
+	// TaList
+	TaList := cfg.Configuration.TaList
+	for i := range TaList {
+		SupportedSnssaiList := TaList[i].SupportedSnssaiList
+		for j := range SupportedSnssaiList {
+			SupportedSnssaiList[j].Sd = strings.ToLower(SupportedSnssaiList[j].Sd)
 		}
 	}
-	//MappingListFromPlmn
-	for _, MappingList := range cfg.Configuration.MappingListFromPlmn {
-		for _, Mapping := range MappingList.MappingOfSnssai {
-			Mapping.HomeSnssai.Sd = strings.ToLower(Mapping.HomeSnssai.Sd)
-			Mapping.ServingSnssai.Sd = strings.ToLower(Mapping.ServingSnssai.Sd)
+
+	// MappingListFromPlmn
+	MappingListFromPlmn := cfg.Configuration.MappingListFromPlmn
+	for i := range MappingListFromPlmn {
+		MappingOfSnssai := MappingListFromPlmn[i].MappingOfSnssai
+		for j := range MappingOfSnssai {
+			MappingOfSnssai[j].HomeSnssai.Sd = strings.ToLower(MappingOfSnssai[j].HomeSnssai.Sd)
+			MappingOfSnssai[j].ServingSnssai.Sd = strings.ToLower(MappingOfSnssai[j].ServingSnssai.Sd)
 		}
 	}
 }
