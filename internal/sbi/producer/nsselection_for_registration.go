@@ -12,6 +12,7 @@ import (
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/plugin"
 	"github.com/free5gc/nssf/internal/util"
+	"github.com/free5gc/openapi"
 	"github.com/free5gc/openapi/models"
 )
 
@@ -97,7 +98,7 @@ func useDefaultConfiguredNssai(
 
 		// Check whether the Default Configured S-NSSAI is subscribed
 		for _, subscribedSnssai := range param.SliceInfoRequestForRegistration.SubscribedNssai {
-			if requestedSnssai == *subscribedSnssai.SubscribedSnssai {
+			if openapi.SnssaiEqualFold(requestedSnssai, *subscribedSnssai.SubscribedSnssai) {
 				var configuredSnssai models.ConfiguredSnssai
 				configuredSnssai.ConfiguredSnssai = new(models.Snssai)
 				*configuredSnssai.ConfiguredSnssai = requestedSnssai
@@ -357,7 +358,7 @@ func nsselectionForRegistration(param plugin.NsselectionQueryParameter,
 
 			hitSubscription := false
 			for _, subscribedSnssai := range param.SliceInfoRequestForRegistration.SubscribedNssai {
-				if mappingOfRequestedSnssai == *subscribedSnssai.SubscribedSnssai {
+				if openapi.SnssaiEqualFold(mappingOfRequestedSnssai, *subscribedSnssai.SubscribedSnssai) {
 					// Requested S-NSSAI matches one of Subscribed S-NSSAI
 					// Add it to Allowed NSSAI list
 					hitSubscription = true
