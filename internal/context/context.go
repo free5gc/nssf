@@ -52,6 +52,7 @@ type NSSFContext struct {
 	NfService         map[models.ServiceName]models.NfService
 	NrfUri            string
 	SupportedPlmnList []models.PlmnId
+	OAuth2Required    bool
 }
 
 // Initialize NSSF context with configuration factory
