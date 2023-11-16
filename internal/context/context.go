@@ -51,6 +51,7 @@ type NSSFContext struct {
 	SBIPort           int
 	NfService         map[models.ServiceName]models.NfService
 	NrfUri            string
+	NrfCerPem         string
 	SupportedPlmnList []models.PlmnId
 	OAuth2Required    bool
 }
@@ -83,6 +84,9 @@ func InitNssfContext() {
 	} else {
 		logger.InitLog.Warn("NRF Uri is empty! Using localhost as NRF IPv4 address.")
 		nssfContext.NrfUri = fmt.Sprintf("%s://%s:%d", nssfContext.UriScheme, "127.0.0.1", 29510)
+	}
+	if nssfConfig.Configuration.NrfCerPem != "" {
+		nssfContext.NrfCerPem = nssfConfig.Configuration.NrfCerPem
 	}
 
 	nssfContext.SupportedPlmnList = nssfConfig.Configuration.SupportedPlmnList
