@@ -58,7 +58,7 @@ type Configuration struct {
 	Sbi                      *Sbi                    `yaml:"sbi"`
 	ServiceNameList          []models.ServiceName    `yaml:"serviceNameList"`
 	NrfUri                   string                  `yaml:"nrfUri"`
-	NrfCerPem                string                  `yaml:"nrfCerPem,omitempty" valid:"type(string),optional"`
+	NrfCertPem               string                  `yaml:"nrfCertPem,omitempty" valid:"type(string),optional"`
 	SupportedPlmnList        []models.PlmnId         `yaml:"supportedPlmnList,omitempty"`
 	SupportedNssaiInPlmnList []SupportedNssaiInPlmn  `yaml:"supportedNssaiInPlmnList"`
 	NsiList                  []NsiConfig             `yaml:"nsiList,omitempty"`
