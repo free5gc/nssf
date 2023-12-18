@@ -8,6 +8,7 @@
 package context
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -18,6 +19,7 @@ import (
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/pkg/factory"
 	"github.com/free5gc/openapi/models"
+	"github.com/free5gc/openapi/oauth"
 )
 
 var nssfContext = NSSFContext{}
@@ -85,10 +87,7 @@ func InitNssfContext() {
 		logger.InitLog.Warn("NRF Uri is empty! Using localhost as NRF IPv4 address.")
 		nssfContext.NrfUri = fmt.Sprintf("%s://%s:%d", nssfContext.UriScheme, "127.0.0.1", 29510)
 	}
-	if nssfConfig.Configuration.NrfCertPem != "" {
-		nssfContext.NrfCertPem = nssfConfig.Configuration.NrfCertPem
-	}
-
+	nssfContext.NrfCertPem = nssfConfig.Configuration.NrfCertPem
 	nssfContext.SupportedPlmnList = nssfConfig.Configuration.SupportedPlmnList
 }
 
@@ -129,4 +128,14 @@ func GetIpv4Uri() string {
 
 func GetSelf() *NSSFContext {
 	return &nssfContext
+}
+
+func (c *NSSFContext) GetTokenCtx(scope, targetNF string) (
+	context.Context, *models.ProblemDetails, error,
+) {
+	if !c.OAuth2Required {
+		return context.TODO(), nil, nil
+	}
+	return oauth.GetTokenCtx(models.NfType_NSSF,
+		c.NfId, c.NrfUri, scope, targetNF)
 }

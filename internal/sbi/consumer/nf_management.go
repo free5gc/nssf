@@ -93,7 +93,7 @@ func SendDeregisterNFInstance() (*models.ProblemDetails, error) {
 
 	var err error
 
-	ctx, pd, err := GetTokenCtx("nnrf-nfm", "NRF")
+	ctx, pd, err := nssf_context.GetSelf().GetTokenCtx("nnrf-nfm", "NRF")
 	if err != nil {
 		return pd, err
 	}
