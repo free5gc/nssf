@@ -44,8 +44,9 @@ func SendRegisterNFInstance(nrfUri, nfInstanceId string, profile models.NfProfil
 	apiClient := Nnrf_NFManagement.NewAPIClient(configuration)
 
 	var res *http.Response
+	var nf models.NfProfile
 	for {
-		_, res, err = apiClient.NFInstanceIDDocumentApi.RegisterNFInstance(context.TODO(), nfInstanceId, profile)
+		nf, res, err = apiClient.NFInstanceIDDocumentApi.RegisterNFInstance(context.TODO(), nfInstanceId, profile)
 		if err != nil || res == nil {
 			// TODO : add log
 			logger.ConsumerLog.Errorf("NSSF register to NRF Error[%s]", err.Error())
@@ -66,6 +67,19 @@ func SendRegisterNFInstance(nrfUri, nfInstanceId string, profile models.NfProfil
 			resourceUri := res.Header.Get("Location")
 			resourceNrfUri = resourceUri[:strings.Index(resourceUri, "/nnrf-nfm/")]
 			retrieveNfInstanceId = resourceUri[strings.LastIndex(resourceUri, "/")+1:]
+
+			oauth2 := false
+			if nf.CustomInfo != nil {
+				v, ok := nf.CustomInfo["oauth2"].(bool)
+				if ok {
+					oauth2 = v
+					logger.MainLog.Infoln("OAuth2 setting receive from NRF:", oauth2)
+				}
+			}
+			nssf_context.GetSelf().OAuth2Required = oauth2
+			if oauth2 && nssf_context.GetSelf().NrfCertPem == "" {
+				logger.CfgLog.Error("OAuth2 enable but no nrfCertPem provided in config.")
+			}
 			break
 		} else {
 			fmt.Println("NRF return wrong status code", status)
@@ -77,6 +91,13 @@ func SendRegisterNFInstance(nrfUri, nfInstanceId string, profile models.NfProfil
 func SendDeregisterNFInstance() (*models.ProblemDetails, error) {
 	logger.ConsumerLog.Infof("Send Deregister NFInstance")
 
+	var err error
+
+	ctx, pd, err := nssf_context.GetSelf().GetTokenCtx("nnrf-nfm", "NRF")
+	if err != nil {
+		return pd, err
+	}
+
 	nssfSelf := nssf_context.GetSelf()
 	// Set client and set url
 	configuration := Nnrf_NFManagement.NewConfiguration()
@@ -84,9 +105,8 @@ func SendDeregisterNFInstance() (*models.ProblemDetails, error) {
 	client := Nnrf_NFManagement.NewAPIClient(configuration)
 
 	var res *http.Response
-	var err error
 
-	res, err = client.NFInstanceIDDocumentApi.DeregisterNFInstance(context.Background(), nssfSelf.NfId)
+	res, err = client.NFInstanceIDDocumentApi.DeregisterNFInstance(ctx, nssfSelf.NfId)
 	if err == nil {
 		return nil, err
 	} else if res != nil {
