@@ -10,6 +10,8 @@
 package nssaiavailability
 
 import (
+	nssf_context "github.com/free5gc/nssf/internal/context"
+	"github.com/free5gc/nssf/internal/util"
 	"net/http"
 	"strings"
 
@@ -19,6 +21,8 @@ import (
 	"github.com/free5gc/nssf/pkg/factory"
 	logger_util "github.com/free5gc/util/logger"
 )
+
+const serviceName string = "nnssf-nssaiavailability"
 
 // Route is the information for every URI.
 type Route struct {
@@ -38,12 +42,23 @@ type Routes []Route
 // NewRouter returns a new router.
 func NewRouter() *gin.Engine {
 	router := logger_util.NewGinWithLogrus(logger.GinLog)
+	routerAuthorizationCheck := util.NewRouterAuthorizationCheck(serviceName)
+
+	router.Use(func(c *gin.Context) {
+		routerAuthorizationCheck.Check(c, nssf_context.GetSelf())
+	})
+
 	AddService(router)
 	return router
 }
 
 func AddService(engine *gin.Engine) *gin.RouterGroup {
 	group := engine.Group(factory.NssfNssaiavailResUriPrefix)
+
+	routerAuthorizationCheck := util.NewRouterAuthorizationCheck(serviceName)
+	group.Use(func(c *gin.Context) {
+		routerAuthorizationCheck.Check(c, nssf_context.GetSelf())
+	})
 
 	for _, route := range routes {
 		switch route.Method {

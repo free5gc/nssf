@@ -43,6 +43,10 @@ func Init() {
 	nssfContext.NrfUri = fmt.Sprintf("%s://%s:%d", models.UriScheme_HTTPS, nssfContext.RegisterIPv4, 29510)
 }
 
+type NFContext interface {
+	AuthorizationCheck(token, serviceName string) error
+}
+
 type NSSFContext struct {
 	NfId         string
 	Name         string
@@ -138,4 +142,14 @@ func (c *NSSFContext) GetTokenCtx(scope, targetNF string) (
 	}
 	return oauth.GetTokenCtx(models.NfType_NSSF,
 		c.NfId, c.NrfUri, scope, targetNF)
+}
+
+func (c *NSSFContext) AuthorizationCheck(token, serviceName string) error {
+	if !c.OAuth2Required {
+		logger.UtilLog.Debugf("NSSFContext::AuthorizationCheck: OAuth2 not required\n")
+		return nil
+	}
+
+	logger.UtilLog.Debugf("NSSFContext::AuthorizationCheck: token[%s] serviceName[%s]\n", token, serviceName)
+	return oauth.VerifyOAuth(token, serviceName, c.NrfCertPem)
 }

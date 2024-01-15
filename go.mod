@@ -9,6 +9,7 @@ require (
 	github.com/free5gc/util v1.0.5-0.20231001095115-433858e5be94
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.3.0
+	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/urfave/cli v1.22.5
 	gopkg.in/yaml.v2 v2.4.0
@@ -36,7 +37,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/tim-ywliu/nested-logrus-formatter v1.3.2 // indirect
