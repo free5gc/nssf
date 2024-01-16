@@ -109,11 +109,6 @@ func SendDeregisterNFInstance() (*models.ProblemDetails, error) {
 	configuration.SetBasePath(nssfSelf.NrfUri)
 	client := Nnrf_NFManagement.NewAPIClient(configuration)
 
-	ctx, _, err = nssf_context.GetSelf().GetTokenCtx("nnrf-nfm", "NRF")
-	if err != nil {
-		return nil, errors.Errorf("SendDeregisterNFInstance error: %+v", err)
-	}
-
 	var res *http.Response
 
 	res, err = client.NFInstanceIDDocumentApi.DeregisterNFInstance(ctx, nssfSelf.NfId)
