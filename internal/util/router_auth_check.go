@@ -7,8 +7,6 @@ import (
 	"net/http"
 )
 
-type NFContextGetter func() *nssf_context.NSSFContext
-
 type RouterAuthorizationCheck struct {
 	serviceName string
 }
