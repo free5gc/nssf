@@ -44,6 +44,7 @@ func Init() {
 }
 
 type NFContext interface {
+	var _ NFContext = &NSSFContext{}
 	AuthorizationCheck(token, serviceName string) error
 }
 
