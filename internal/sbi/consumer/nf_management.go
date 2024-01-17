@@ -7,12 +7,11 @@
 package consumer
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
 
 	nssf_context "github.com/free5gc/nssf/internal/context"
 	"github.com/free5gc/nssf/internal/logger"
@@ -44,10 +43,11 @@ func SendRegisterNFInstance(nrfUri, nfInstanceId string, profile models.NfProfil
 	configuration.SetBasePath(nrfUri)
 	apiClient := Nnrf_NFManagement.NewAPIClient(configuration)
 
-	ctx, _, err := nssf_context.GetSelf().GetTokenCtx("nnrf-nfm", "NRF")
-	if err != nil {
-		return "", "", errors.Errorf("SendRegisterNFInstance error: %+v", err)
-	}
+	ctx := context.Background()
+	// ctx, _, err := nssf_context.GetSelf().GetTokenCtx("nnrf-nfm", "NRF")
+	// if err != nil {
+	// 	return "", "", errors.Errorf("SendRegisterNFInstance error: %+v", err)
+	// }
 
 	var res *http.Response
 	var nf models.NfProfile
