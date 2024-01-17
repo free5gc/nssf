@@ -1,11 +1,12 @@
 package util
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -31,7 +32,12 @@ func TestRouterAuthorizationCheck_Check(t *testing.T) {
 	// Mock gin.Context
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
-	c.Request, _ = http.NewRequest("GET", "/", nil)
+
+	var err error
+	c.Request, err = http.NewRequest("GET", "/", nil)
+	if err != nil {
+		t.Errorf("error on http request: %+v", err)
+	}
 
 	type Args struct {
 		token string
@@ -69,7 +75,10 @@ func TestRouterAuthorizationCheck_Check(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w = httptest.NewRecorder()
 			c, _ = gin.CreateTestContext(w)
-			c.Request, _ = http.NewRequest("GET", "/", nil)
+			c.Request, err = http.NewRequest("GET", "/", nil)
+			if err != nil {
+				t.Errorf("error on http request: %+v", err)
+			}
 			c.Request.Header.Set("Authorization", tt.args.token)
 
 			rac := NewRouterAuthorizationCheck("testService")

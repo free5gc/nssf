@@ -1,10 +1,12 @@
 package util
 
 import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
 	nssf_context "github.com/free5gc/nssf/internal/context"
 	"github.com/free5gc/nssf/internal/logger"
-	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 type RouterAuthorizationCheck struct {
@@ -20,7 +22,6 @@ func NewRouterAuthorizationCheck(serviceName string) *RouterAuthorizationCheck {
 func (rac *RouterAuthorizationCheck) Check(c *gin.Context, nssfContext nssf_context.NFContext) {
 	token := c.Request.Header.Get("Authorization")
 	err := nssfContext.AuthorizationCheck(token, rac.serviceName)
-
 	if err != nil {
 		logger.UtilLog.Debugf("RouterAuthorizationCheck: Check Unauthorized: %s", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})

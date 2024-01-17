@@ -8,10 +8,11 @@ package consumer
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	nssf_context "github.com/free5gc/nssf/internal/context"
 	"github.com/free5gc/nssf/internal/logger"
