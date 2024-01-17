@@ -19,10 +19,11 @@ import (
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/util"
 	"github.com/free5gc/nssf/pkg/factory"
+	"github.com/free5gc/openapi/models"
 	logger_util "github.com/free5gc/util/logger"
 )
 
-const serviceName string = "nnssf-nsselection"
+const serviceName string = string(models.ServiceName_NNSSF_NSSELECTION)
 
 // Route is the information for every URI.
 type Route struct {

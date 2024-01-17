@@ -136,14 +136,14 @@ func GetSelf() *NSSFContext {
 	return &nssfContext
 }
 
-func (c *NSSFContext) GetTokenCtx(scope, targetNF string) (
+func (c *NSSFContext) GetTokenCtx(scope string, targetNF models.NfType) (
 	context.Context, *models.ProblemDetails, error,
 ) {
 	if !c.OAuth2Required {
 		return context.TODO(), nil, nil
 	}
-	return oauth.GetTokenCtx(models.NfType_NSSF,
-		c.NfId, c.NrfUri, scope, targetNF)
+	return oauth.GetTokenCtx(models.NfType_NSSF, targetNF,
+		c.NfId, c.NrfUri, scope)
 }
 
 func (c *NSSFContext) AuthorizationCheck(token, serviceName string) error {

@@ -43,16 +43,10 @@ func SendRegisterNFInstance(nrfUri, nfInstanceId string, profile models.NfProfil
 	configuration.SetBasePath(nrfUri)
 	apiClient := Nnrf_NFManagement.NewAPIClient(configuration)
 
-	ctx := context.Background()
-	// ctx, _, err := nssf_context.GetSelf().GetTokenCtx("nnrf-nfm", "NRF")
-	// if err != nil {
-	// 	return "", "", errors.Errorf("SendRegisterNFInstance error: %+v", err)
-	// }
-
 	var res *http.Response
 	var nf models.NfProfile
 	for {
-		nf, res, err = apiClient.NFInstanceIDDocumentApi.RegisterNFInstance(ctx, nfInstanceId, profile)
+		nf, res, err = apiClient.NFInstanceIDDocumentApi.RegisterNFInstance(context.TODO(), nfInstanceId, profile)
 		if err != nil || res == nil {
 			// TODO : add log
 			logger.ConsumerLog.Errorf("NSSF register to NRF Error[%s]", err.Error())
@@ -99,7 +93,7 @@ func SendDeregisterNFInstance() (*models.ProblemDetails, error) {
 
 	var err error
 
-	ctx, pd, err := nssf_context.GetSelf().GetTokenCtx("nnrf-nfm", "NRF")
+	ctx, pd, err := nssf_context.GetSelf().GetTokenCtx("nnrf-nfm", models.NfType_NRF)
 	if err != nil {
 		return pd, err
 	}

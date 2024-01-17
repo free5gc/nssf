@@ -23,7 +23,7 @@ func (rac *RouterAuthorizationCheck) Check(c *gin.Context, nssfContext nssf_cont
 	token := c.Request.Header.Get("Authorization")
 	err := nssfContext.AuthorizationCheck(token, rac.serviceName)
 	if err != nil {
-		logger.UtilLog.Debugf("RouterAuthorizationCheck: Check Unauthorized: %s", err)
+		logger.UtilLog.Debugf("RouterAuthorizationCheck: Check Unauthorized: %s", err.Error())
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		c.Abort()
 		return
