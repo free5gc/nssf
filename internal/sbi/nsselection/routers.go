@@ -15,10 +15,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	nssf_context "github.com/free5gc/nssf/internal/context"
 	"github.com/free5gc/nssf/internal/logger"
+	"github.com/free5gc/nssf/internal/util"
 	"github.com/free5gc/nssf/pkg/factory"
+	"github.com/free5gc/openapi/models"
 	logger_util "github.com/free5gc/util/logger"
 )
+
+const serviceName string = string(models.ServiceName_NNSSF_NSSELECTION)
 
 // Route is the information for every URI.
 type Route struct {
@@ -44,6 +49,11 @@ func NewRouter() *gin.Engine {
 
 func AddService(engine *gin.Engine) *gin.RouterGroup {
 	group := engine.Group(factory.NssfNsselectResUriPrefix)
+
+	routerAuthorizationCheck := util.NewRouterAuthorizationCheck(serviceName)
+	group.Use(func(c *gin.Context) {
+		routerAuthorizationCheck.Check(c, nssf_context.GetSelf())
+	})
 
 	for _, route := range routes {
 		switch route.Method {
