@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/free5gc/openapi/models"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 )
@@ -20,7 +21,7 @@ func newMockNSSFContext() *mockNSSFContext {
 	return &mockNSSFContext{}
 }
 
-func (m *mockNSSFContext) AuthorizationCheck(token string, serviceName string) error {
+func (m *mockNSSFContext) AuthorizationCheck(token string, serviceName models.ServiceName) error {
 	if token == Valid {
 		return nil
 	}
@@ -81,7 +82,9 @@ func TestRouterAuthorizationCheck_Check(t *testing.T) {
 			}
 			c.Request.Header.Set("Authorization", tt.args.token)
 
-			rac := NewRouterAuthorizationCheck("testService")
+			var testService models.ServiceName = "testService"
+
+			rac := NewRouterAuthorizationCheck(testService)
 			rac.Check(c, newMockNSSFContext())
 			if w.Code != tt.want.statusCode {
 				t.Errorf("StatusCode should be %d, but got %d", tt.want.statusCode, w.Code)
