@@ -44,7 +44,7 @@ func Init() {
 }
 
 type NFContext interface {
-	AuthorizationCheck(token, serviceName string) error
+	AuthorizationCheck(token string, serviceName models.ServiceName) error
 }
 
 var _ NFContext = &NSSFContext{}
@@ -136,22 +136,22 @@ func GetSelf() *NSSFContext {
 	return &nssfContext
 }
 
-func (c *NSSFContext) GetTokenCtx(scope string, targetNF models.NfType) (
+func (c *NSSFContext) GetTokenCtx(serviceName models.ServiceName, targetNF models.NfType) (
 	context.Context, *models.ProblemDetails, error,
 ) {
 	if !c.OAuth2Required {
 		return context.TODO(), nil, nil
 	}
 	return oauth.GetTokenCtx(models.NfType_NSSF, targetNF,
-		c.NfId, c.NrfUri, scope)
+		c.NfId, c.NrfUri, string(serviceName))
 }
 
-func (c *NSSFContext) AuthorizationCheck(token, serviceName string) error {
+func (c *NSSFContext) AuthorizationCheck(token string, serviceName models.ServiceName) error {
 	if !c.OAuth2Required {
 		logger.UtilLog.Debugf("NSSFContext::AuthorizationCheck: OAuth2 not required\n")
 		return nil
 	}
 
 	logger.UtilLog.Debugf("NSSFContext::AuthorizationCheck: token[%s] serviceName[%s]\n", token, serviceName)
-	return oauth.VerifyOAuth(token, serviceName, c.NrfCertPem)
+	return oauth.VerifyOAuth(token, string(serviceName), c.NrfCertPem)
 }
