@@ -56,7 +56,7 @@ func action(cliCtx *cli.Context) error {
 	}
 	factory.NssfConfig = cfg
 
-	nssf, err := service.NewApp(cfg)
+	nssf, err := service.NewApp(cfg, tlsKeyLogPath)
 	if err != nil {
 		return err
 	}
