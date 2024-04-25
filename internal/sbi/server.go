@@ -1,4 +1,4 @@
-package server
+package sbi
 
 import (
 	"context"
@@ -9,22 +9,32 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	nssf_context "github.com/free5gc/nssf/internal/context"
 	"github.com/free5gc/nssf/internal/logger"
-	"github.com/free5gc/nssf/internal/sbi"
+	"github.com/free5gc/nssf/internal/sbi/processor"
 	"github.com/free5gc/nssf/pkg/factory"
 	"github.com/free5gc/util/httpwrapper"
 	logger_util "github.com/free5gc/util/logger"
 )
 
+type Nssf interface {
+	Config() *factory.Config
+	Context() *nssf_context.NSSFContext
+}
+
 type Server struct {
-	sbi.Nssf
+	Nssf
 
 	httpServer *http.Server
 	router     *gin.Engine
+	processor  *processor.Processor
 }
 
-func NewServer(nssf sbi.Nssf, tlsKeyLogPath string) *Server {
-	s := &Server{Nssf: nssf}
+func NewServer(nssf Nssf, tlsKeyLogPath string) *Server {
+	s := &Server{
+		Nssf:      nssf,
+		processor: processor.NewProcessor(nssf),
+	}
 
 	s.router = newRouter(s)
 
@@ -37,6 +47,10 @@ func NewServer(nssf sbi.Nssf, tlsKeyLogPath string) *Server {
 	}
 
 	return s
+}
+
+func (s *Server) Processor() *processor.Processor {
+	return s.processor
 }
 
 func (s *Server) Run(wg *sync.WaitGroup) {
@@ -73,7 +87,7 @@ func (s *Server) shutdownHttpServer() {
 	}
 }
 
-func bindRouter(nssf sbi.Nssf, router *gin.Engine, tlsKeyLogPath string) (*http.Server, error) {
+func bindRouter(nssf Nssf, router *gin.Engine, tlsKeyLogPath string) (*http.Server, error) {
 	sbiConfig := nssf.Config().Configuration.Sbi
 	bindAddr := fmt.Sprintf("%s:%d", sbiConfig.BindingIPv4, sbiConfig.Port)
 

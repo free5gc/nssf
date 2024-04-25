@@ -1,4 +1,4 @@
-package server
+package sbi
 
 import (
 	"net/http"
