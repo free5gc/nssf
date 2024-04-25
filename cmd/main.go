@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime/debug"
+	"syscall"
 
 	"github.com/urfave/cli"
 
@@ -62,7 +65,17 @@ func action(cliCtx *cli.Context) error {
 	}
 	NSSF = nssf
 
-	nssf.Start(tlsKeyLogPath)
+	ctx, cancel := context.WithCancel(context.Background())
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-sigCh  // Wait for interrupt signal to gracefully shutdown
+		cancel() // Notify each goroutine and wait them stopped
+	}()
+
+	nssf.Start(ctx)
+	nssf.Wait()
 
 	return nil
 }

@@ -5,13 +5,12 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
-	"os/signal"
 	"runtime/debug"
 	"sync"
-	"syscall"
 
 	"github.com/sirupsen/logrus"
 
@@ -128,24 +127,7 @@ func (a *NssfApp) deregisterFromNrf() {
 	}
 }
 
-func (a *NssfApp) addSigTermHandler() {
-	signalChannel := make(chan os.Signal, 1)
-	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				// Print stack for panic to log. Fatalf() will let program exit.
-				logger.InitLog.Fatalf("panic: %v\n%s", p, string(debug.Stack()))
-			}
-		}()
-
-		<-signalChannel
-		a.Terminate()
-		os.Exit(0)
-	}()
-}
-
-func (a *NssfApp) Start(tlsKeyLogPath string) {
+func (a *NssfApp) Start(ctx context.Context) {
 	logger.InitLog.Infoln("Server started")
 
 	err := a.registerToNrf()
@@ -162,12 +144,22 @@ func (a *NssfApp) Start(tlsKeyLogPath string) {
 	}()
 
 	a.sbiServer.Run(&a.wg)
-	a.addSigTermHandler()
+	go a.listenShutdown(ctx)
 }
 
-func (nssf *NssfApp) Terminate() {
+func (a *NssfApp) listenShutdown(ctx context.Context) {
+	<-ctx.Done()
+	a.Terminate()
+}
+
+func (a *NssfApp) Terminate() {
 	logger.InitLog.Infof("Terminating NSSF...")
-	nssf.deregisterFromNrf()
-	nssf.sbiServer.Shutdown()
+	a.deregisterFromNrf()
+	a.sbiServer.Shutdown()
+	a.Wait()
+}
+
+func (a *NssfApp) Wait() {
+	a.wg.Wait()
 	logger.InitLog.Infof("NSSF terminated")
 }
