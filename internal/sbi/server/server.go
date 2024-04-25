@@ -7,12 +7,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/sbi"
 	"github.com/free5gc/nssf/pkg/factory"
 	"github.com/free5gc/util/httpwrapper"
 	logger_util "github.com/free5gc/util/logger"
-	"github.com/gin-gonic/gin"
 )
 
 type Server struct {

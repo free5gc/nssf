@@ -12,12 +12,13 @@ package processor
 import (
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/plugin"
 	"github.com/free5gc/nssf/internal/sbi/nssaiavailability"
 	"github.com/free5gc/openapi"
 	"github.com/free5gc/openapi/models"
-	"github.com/gin-gonic/gin"
 )
 
 // HandleNSSAIAvailabilityDelete - Deletes an already existing S-NSSAIs per TA

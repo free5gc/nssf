@@ -158,7 +158,7 @@ func (a *NssfApp) Start(tlsKeyLogPath string) {
 		logger.InitLog.Errorf("Register to NRF failed: %+v", err)
 	}
 
-	// Gracefull deregister when panic
+	// Graceful deregister when panic
 	defer func() {
 		if p := recover(); p != nil {
 			logger.InitLog.Errorf("panic: %v\n%s", p, string(debug.Stack()))
