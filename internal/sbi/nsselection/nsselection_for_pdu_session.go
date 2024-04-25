@@ -4,7 +4,7 @@
  * NSSF Network Slice Selection Service
  */
 
-package producer
+package nsselection
 
 import (
 	"fmt"

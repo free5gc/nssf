@@ -4,7 +4,7 @@
  * NSSF NSSAI Availability Service
  */
 
-package producer
+package nssaiavailability
 
 import (
 	"bytes"
@@ -22,8 +22,7 @@ import (
 	"github.com/free5gc/openapi/models"
 )
 
-// NSSAIAvailability DELETE method
-func NSSAIAvailabilityDeleteProcedure(nfId string) *models.ProblemDetails {
+func NfInstanceDelete(nfId string) *models.ProblemDetails {
 	var problemDetails *models.ProblemDetails
 	for i, amfConfig := range factory.NssfConfig.Configuration.AmfList {
 		if amfConfig.NfId == nfId {
@@ -42,8 +41,7 @@ func NSSAIAvailabilityDeleteProcedure(nfId string) *models.ProblemDetails {
 	return problemDetails
 }
 
-// NSSAIAvailability PATCH method
-func NSSAIAvailabilityPatchProcedure(nssaiAvailabilityUpdateInfo plugin.PatchDocument, nfId string) (
+func NfInstancePatch(nssaiAvailabilityUpdateInfo plugin.PatchDocument, nfId string) (
 	*models.AuthorizedNssaiAvailabilityInfo, *models.ProblemDetails,
 ) {
 	var (
@@ -152,7 +150,7 @@ func NSSAIAvailabilityPatchProcedure(nssaiAvailabilityUpdateInfo plugin.PatchDoc
 }
 
 // NSSAIAvailability PUT method
-func NSSAIAvailabilityPutProcedure(nssaiAvailabilityInfo models.NssaiAvailabilityInfo, nfId string) (
+func NfInstanceUpdate(nssaiAvailabilityInfo models.NssaiAvailabilityInfo, nfId string) (
 	*models.AuthorizedNssaiAvailabilityInfo, *models.ProblemDetails,
 ) {
 	var (

@@ -19,6 +19,8 @@ import (
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/sbi"
 	"github.com/free5gc/nssf/internal/sbi/consumer"
+	"github.com/free5gc/nssf/internal/sbi/processor"
+	"github.com/free5gc/nssf/internal/sbi/server"
 	"github.com/free5gc/nssf/pkg/factory"
 )
 
@@ -26,9 +28,12 @@ type NssfApp struct {
 	cfg     *factory.Config
 	nssfCtx *nssf_context.NSSFContext
 
-	sbiServer *sbi.Server
 	wg        sync.WaitGroup
+	sbiServer *server.Server
+	processor *processor.Processor
 }
+
+var _ sbi.Nssf = &NssfApp{}
 
 func NewApp(cfg *factory.Config, tlsKeyLogPath string) (*NssfApp, error) {
 	nssf := &NssfApp{cfg: cfg, wg: sync.WaitGroup{}}
@@ -36,7 +41,10 @@ func NewApp(cfg *factory.Config, tlsKeyLogPath string) (*NssfApp, error) {
 	nssf.SetLogLevel(cfg.GetLogLevel())
 	nssf.SetReportCaller(cfg.GetLogReportCaller())
 
-	sbiServer := sbi.NewServer(nssf, tlsKeyLogPath)
+	processor := processor.NewProcessor(nssf)
+	nssf.processor = processor
+
+	sbiServer := server.NewServer(nssf, tlsKeyLogPath)
 	nssf.sbiServer = sbiServer
 
 	nssf_context.Init()
@@ -50,6 +58,10 @@ func (a *NssfApp) Config() *factory.Config {
 
 func (a *NssfApp) Context() *nssf_context.NSSFContext {
 	return a.nssfCtx
+}
+
+func (a *NssfApp) Processor() *processor.Processor {
+	return a.processor
 }
 
 func (a *NssfApp) SetLogEnable(enable bool) {

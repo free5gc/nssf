@@ -4,7 +4,7 @@
  * NSSF NSSAI Availability Service
  */
 
-package producer
+package nssaiavailability
 
 import (
 	"fmt"
@@ -43,7 +43,7 @@ func getUnusedSubscriptionID() (string, error) {
 }
 
 // NSSAIAvailability subscription POST method
-func NSSAIAvailabilityPostProcedure(createData models.NssfEventSubscriptionCreateData) (
+func SubscriptionCreate(createData models.NssfEventSubscriptionCreateData) (
 	*models.NssfEventSubscriptionCreatedData, *models.ProblemDetails,
 ) {
 	var (
@@ -80,7 +80,7 @@ func NSSAIAvailabilityPostProcedure(createData models.NssfEventSubscriptionCreat
 	return response, nil
 }
 
-func NSSAIAvailabilityUnsubscribeProcedure(subscriptionId string) *models.ProblemDetails {
+func SubscriptionUnsubscribe(subscriptionId string) *models.ProblemDetails {
 	var problemDetails *models.ProblemDetails
 
 	factory.NssfConfig.Lock()
