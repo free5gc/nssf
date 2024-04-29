@@ -14,48 +14,33 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	nssf_context "github.com/free5gc/nssf/internal/context"
 	"github.com/free5gc/nssf/internal/logger"
+	"github.com/free5gc/nssf/internal/repository"
 	"github.com/free5gc/nssf/internal/sbi"
 	"github.com/free5gc/nssf/internal/sbi/consumer"
-	"github.com/free5gc/nssf/pkg/factory"
 )
 
-type App interface {
-	Config() *factory.Config
-	Context() *nssf_context.NSSFContext
-}
-
 type NssfApp struct {
-	cfg     *factory.Config
-	nssfCtx *nssf_context.NSSFContext
+	*repository.RuntimeRepository
 
 	wg        sync.WaitGroup
 	sbiServer *sbi.Server
 }
 
-var _ App = &NssfApp{}
+func NewApp(runtimeRepo *repository.RuntimeRepository, tlsKeyLogPath string) (*NssfApp, error) {
+	nssf := &NssfApp{
+		RuntimeRepository: runtimeRepo,
+		wg:                sync.WaitGroup{},
+	}
 
-func NewApp(cfg *factory.Config, tlsKeyLogPath string) (*NssfApp, error) {
-	nssf := &NssfApp{cfg: cfg, wg: sync.WaitGroup{}}
-	nssf.SetLogEnable(cfg.GetLogEnable())
-	nssf.SetLogLevel(cfg.GetLogLevel())
-	nssf.SetReportCaller(cfg.GetLogReportCaller())
+	nssf.SetLogEnable(runtimeRepo.Config().GetLogEnable())
+	nssf.SetLogLevel(runtimeRepo.Config().GetLogLevel())
+	nssf.SetReportCaller(runtimeRepo.Config().GetLogReportCaller())
 
-	sbiServer := sbi.NewServer(nssf, tlsKeyLogPath)
+	sbiServer := sbi.NewServer(runtimeRepo, tlsKeyLogPath)
 	nssf.sbiServer = sbiServer
 
-	nssf_context.Init()
-	nssf.nssfCtx = nssf_context.GetSelf()
 	return nssf, nil
-}
-
-func (a *NssfApp) Config() *factory.Config {
-	return a.cfg
-}
-
-func (a *NssfApp) Context() *nssf_context.NSSFContext {
-	return a.nssfCtx
 }
 
 func (a *NssfApp) SetLogEnable(enable bool) {
@@ -66,7 +51,7 @@ func (a *NssfApp) SetLogEnable(enable bool) {
 		return
 	}
 
-	a.cfg.SetLogEnable(enable)
+	a.Config().SetLogEnable(enable)
 	if enable {
 		logger.Log.SetOutput(os.Stderr)
 	} else {
@@ -86,7 +71,7 @@ func (a *NssfApp) SetLogLevel(level string) {
 		return
 	}
 
-	a.cfg.SetLogLevel(level)
+	a.Config().SetLogLevel(level)
 	logger.Log.SetLevel(lvl)
 }
 
@@ -96,12 +81,12 @@ func (a *NssfApp) SetReportCaller(reportCaller bool) {
 		return
 	}
 
-	a.cfg.SetLogReportCaller(reportCaller)
+	a.Config().SetLogReportCaller(reportCaller)
 	logger.Log.SetReportCaller(reportCaller)
 }
 
 func (a *NssfApp) registerToNrf() error {
-	nssfContext := a.nssfCtx
+	nssfContext := a.Context()
 
 	profile, err := consumer.BuildNFProfile(nssfContext)
 	if err != nil {
