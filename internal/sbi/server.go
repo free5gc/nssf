@@ -94,21 +94,30 @@ func bindRouter(cfg *factory.Config, router *gin.Engine, tlsKeyLogPath string) (
 func newRouter(s *Server) *gin.Engine {
 	router := logger_util.NewGinWithLogrus(logger.GinLog)
 
-	nssaiAvailabilityGroup := router.Group(factory.NssfNssaiavailResUriPrefix)
-	nssaiAvailabilityAuthCheck := util.NewRouterAuthorizationCheck(models.ServiceName_NNSSF_NSSAIAVAILABILITY)
-	nssaiAvailabilityGroup.Use(func(c *gin.Context) {
-		nssaiAvailabilityAuthCheck.Check(c, s.Context())
-	})
-	nssaiAvailabilityRoutes := s.getNssaiAvailabilityRoutes()
-	AddService(nssaiAvailabilityGroup, nssaiAvailabilityRoutes)
+	for _, serviceName := range s.Config().Configuration.ServiceNameList {
+		switch serviceName {
+		case models.ServiceName_NNSSF_NSSAIAVAILABILITY:
+			nssaiAvailabilityGroup := router.Group(factory.NssfNssaiavailResUriPrefix)
+			nssaiAvailabilityGroup.Use(func(c *gin.Context) {
+				// oauth middleware
+				util.NewRouterAuthorizationCheck(serviceName).Check(c, s.Context())
+			})
+			nssaiAvailabilityRoutes := s.getNssaiAvailabilityRoutes()
+			AddService(nssaiAvailabilityGroup, nssaiAvailabilityRoutes)
 
-	nsSelectionGroup := router.Group(factory.NssfNsselectResUriPrefix)
-	nsSelectionAuthCheck := util.NewRouterAuthorizationCheck(models.ServiceName_NNSSF_NSSELECTION)
-	nsSelectionGroup.Use(func(c *gin.Context) {
-		nsSelectionAuthCheck.Check(c, s.Context())
-	})
-	nsSelectionRoutes := s.getNsSelectionRoutes()
-	AddService(nsSelectionGroup, nsSelectionRoutes)
+		case models.ServiceName_NNSSF_NSSELECTION:
+			nsSelectionGroup := router.Group(factory.NssfNsselectResUriPrefix)
+			nsSelectionGroup.Use(func(c *gin.Context) {
+				// oauth middleware
+				util.NewRouterAuthorizationCheck(serviceName).Check(c, s.Context())
+			})
+			nsSelectionRoutes := s.getNsSelectionRoutes()
+			AddService(nsSelectionGroup, nsSelectionRoutes)
+
+		default:
+			logger.SBILog.Warnf("Unsupported service name: %s", serviceName)
+		}
+	}
 
 	return router
 }
