@@ -12,7 +12,9 @@ import (
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/repository"
 	"github.com/free5gc/nssf/internal/sbi/processor"
+	"github.com/free5gc/nssf/internal/util"
 	"github.com/free5gc/nssf/pkg/factory"
+	"github.com/free5gc/openapi/models"
 	"github.com/free5gc/util/httpwrapper"
 	logger_util "github.com/free5gc/util/logger"
 )
@@ -93,10 +95,18 @@ func newRouter(s *Server) *gin.Engine {
 	router := logger_util.NewGinWithLogrus(logger.GinLog)
 
 	nssaiAvailabilityGroup := router.Group(factory.NssfNssaiavailResUriPrefix)
+	nssaiAvailabilityAuthCheck := util.NewRouterAuthorizationCheck(models.ServiceName_NNSSF_NSSAIAVAILABILITY)
+	nssaiAvailabilityGroup.Use(func(c *gin.Context) {
+		nssaiAvailabilityAuthCheck.Check(c, s.Context())
+	})
 	nssaiAvailabilityRoutes := s.getNssaiAvailabilityRoutes()
 	AddService(nssaiAvailabilityGroup, nssaiAvailabilityRoutes)
 
 	nsSelectionGroup := router.Group(factory.NssfNsselectResUriPrefix)
+	nsSelectionAuthCheck := util.NewRouterAuthorizationCheck(models.ServiceName_NNSSF_NSSELECTION)
+	nsSelectionGroup.Use(func(c *gin.Context) {
+		nsSelectionAuthCheck.Check(c, s.Context())
+	})
 	nsSelectionRoutes := s.getNsSelectionRoutes()
 	AddService(nsSelectionGroup, nsSelectionRoutes)
 
