@@ -66,6 +66,8 @@ type NSSFContext struct {
 
 // Initialize NSSF context with configuration factory
 func InitNssfContext() {
+	Init()
+
 	nssfConfig := factory.NssfConfig
 	if nssfConfig.Configuration.NssfName != "" {
 		nssfContext.Name = nssfConfig.Configuration.NssfName

@@ -10,6 +10,7 @@ import (
 
 	"github.com/urfave/cli"
 
+	nssf_context "github.com/free5gc/nssf/internal/context"
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/repository"
 	"github.com/free5gc/nssf/pkg/factory"
@@ -61,6 +62,7 @@ func action(cliCtx *cli.Context) error {
 	factory.NssfConfig = cfg
 
 	runtimeRepo := repository.NewRuntimeRepository(cfg)
+	nssf_context.InitNssfContext()
 	nssf, err := service.NewApp(runtimeRepo, tlsKeyLogPath)
 	if err != nil {
 		return err
