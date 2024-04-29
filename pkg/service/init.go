@@ -113,11 +113,11 @@ func (a *NssfApp) deregisterFromNrf() {
 }
 
 func (a *NssfApp) Start(ctx context.Context) {
-	logger.InitLog.Infoln("Server started")
-
 	err := a.registerToNrf()
 	if err != nil {
-		logger.InitLog.Errorf("Register to NRF failed: %+v", err)
+		logger.MainLog.Errorf("Register to NRF failed: %+v", err)
+	} else {
+		logger.MainLog.Infoln("Register to NRF successfully")
 	}
 
 	// Graceful deregister when panic
@@ -138,7 +138,7 @@ func (a *NssfApp) listenShutdown(ctx context.Context) {
 }
 
 func (a *NssfApp) Terminate() {
-	logger.InitLog.Infof("Terminating NSSF...")
+	logger.MainLog.Infof("Terminating NSSF...")
 	a.deregisterFromNrf()
 	a.sbiServer.Shutdown()
 	a.Wait()
@@ -146,5 +146,5 @@ func (a *NssfApp) Terminate() {
 
 func (a *NssfApp) Wait() {
 	a.wg.Wait()
-	logger.InitLog.Infof("NSSF terminated")
+	logger.MainLog.Infof("NSSF terminated")
 }
