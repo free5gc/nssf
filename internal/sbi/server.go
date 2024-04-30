@@ -9,8 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	nssf_context "github.com/free5gc/nssf/internal/context"
 	"github.com/free5gc/nssf/internal/logger"
-	"github.com/free5gc/nssf/internal/repository"
 	"github.com/free5gc/nssf/internal/sbi/processor"
 	"github.com/free5gc/nssf/internal/util"
 	"github.com/free5gc/nssf/pkg/factory"
@@ -19,23 +19,28 @@ import (
 	logger_util "github.com/free5gc/util/logger"
 )
 
+type Nssf interface {
+	Config() *factory.Config
+	Context() *nssf_context.NSSFContext
+}
+
 type Server struct {
-	*repository.RuntimeRepository
+	Nssf
 
 	httpServer *http.Server
 	router     *gin.Engine
 	processor  *processor.Processor
 }
 
-func NewServer(runtimeRepo *repository.RuntimeRepository, tlsKeyLogPath string) *Server {
+func NewServer(nssf Nssf, tlsKeyLogPath string) *Server {
 	s := &Server{
-		RuntimeRepository: runtimeRepo,
-		processor:         processor.NewProcessor(runtimeRepo),
+		Nssf:      nssf,
+		processor: processor.NewProcessor(nssf),
 	}
 
 	s.router = newRouter(s)
 
-	server, err := bindRouter(runtimeRepo.Config(), s.router, tlsKeyLogPath)
+	server, err := bindRouter(nssf, s.router, tlsKeyLogPath)
 	s.httpServer = server
 
 	if err != nil {
@@ -84,8 +89,8 @@ func (s *Server) shutdownHttpServer() {
 	}
 }
 
-func bindRouter(cfg *factory.Config, router *gin.Engine, tlsKeyLogPath string) (*http.Server, error) {
-	sbiConfig := cfg.Configuration.Sbi
+func bindRouter(nssf Nssf, router *gin.Engine, tlsKeyLogPath string) (*http.Server, error) {
+	sbiConfig := nssf.Config().Configuration.Sbi
 	bindAddr := fmt.Sprintf("%s:%d", sbiConfig.BindingIPv4, sbiConfig.Port)
 
 	return httpwrapper.NewHttp2Server(bindAddr, tlsKeyLogPath, router)
@@ -127,7 +132,7 @@ func (s *Server) unsecureServe() error {
 }
 
 func (s *Server) secureServe() error {
-	sbiConfig := s.Config().Configuration.Sbi
+	sbiConfig := s.Nssf.Config().Configuration.Sbi
 
 	pemPath := sbiConfig.Tls.Pem
 	if pemPath == "" {
@@ -143,7 +148,7 @@ func (s *Server) secureServe() error {
 }
 
 func (s *Server) serve() error {
-	sbiConfig := s.Config().Configuration.Sbi
+	sbiConfig := s.Nssf.Config().Configuration.Sbi
 
 	switch sbiConfig.Scheme {
 	case "http":

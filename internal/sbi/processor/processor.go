@@ -1,13 +1,21 @@
 package processor
 
 import (
-	"github.com/free5gc/nssf/internal/repository"
+	nssf_context "github.com/free5gc/nssf/internal/context"
+	"github.com/free5gc/nssf/pkg/factory"
 )
 
-type Processor struct {
-	*repository.RuntimeRepository
+type Nssf interface {
+	Config() *factory.Config
+	Context() *nssf_context.NSSFContext
 }
 
-func NewProcessor(runtimeRepo *repository.RuntimeRepository) *Processor {
-	return &Processor{RuntimeRepository: runtimeRepo}
+type Processor struct {
+	Nssf
+}
+
+func NewProcessor(nssf Nssf) *Processor {
+	return &Processor{
+		Nssf: nssf,
+	}
 }
