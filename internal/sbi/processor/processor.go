@@ -1,21 +1,15 @@
 package processor
 
 import (
-	nssf_context "github.com/free5gc/nssf/internal/context"
-	"github.com/free5gc/nssf/pkg/factory"
+	"github.com/free5gc/nssf/pkg/app"
 )
 
-type Nssf interface {
-	Config() *factory.Config
-	Context() *nssf_context.NSSFContext
-}
-
 type Processor struct {
-	Nssf
+	app.NssfApp
 }
 
-func NewProcessor(nssf Nssf) *Processor {
+func NewProcessor(nssf app.NssfApp) *Processor {
 	return &Processor{
-		Nssf: nssf,
+		NssfApp: nssf,
 	}
 }

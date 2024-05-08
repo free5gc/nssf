@@ -9,32 +9,27 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	nssf_context "github.com/free5gc/nssf/internal/context"
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/sbi/processor"
 	"github.com/free5gc/nssf/internal/util"
+	"github.com/free5gc/nssf/pkg/app"
 	"github.com/free5gc/nssf/pkg/factory"
 	"github.com/free5gc/openapi/models"
 	"github.com/free5gc/util/httpwrapper"
 	logger_util "github.com/free5gc/util/logger"
 )
 
-type Nssf interface {
-	Config() *factory.Config
-	Context() *nssf_context.NSSFContext
-}
-
 type Server struct {
-	Nssf
+	app.NssfApp
 
 	httpServer *http.Server
 	router     *gin.Engine
 	processor  *processor.Processor
 }
 
-func NewServer(nssf Nssf, tlsKeyLogPath string) *Server {
+func NewServer(nssf app.NssfApp, tlsKeyLogPath string) *Server {
 	s := &Server{
-		Nssf:      nssf,
+		NssfApp:   nssf,
 		processor: processor.NewProcessor(nssf),
 	}
 
@@ -89,7 +84,7 @@ func (s *Server) shutdownHttpServer() {
 	}
 }
 
-func bindRouter(nssf Nssf, router *gin.Engine, tlsKeyLogPath string) (*http.Server, error) {
+func bindRouter(nssf app.NssfApp, router *gin.Engine, tlsKeyLogPath string) (*http.Server, error) {
 	sbiConfig := nssf.Config().Configuration.Sbi
 	bindAddr := fmt.Sprintf("%s:%d", sbiConfig.BindingIPv4, sbiConfig.Port)
 
@@ -132,7 +127,7 @@ func (s *Server) unsecureServe() error {
 }
 
 func (s *Server) secureServe() error {
-	sbiConfig := s.Nssf.Config().Configuration.Sbi
+	sbiConfig := s.Config().Configuration.Sbi
 
 	pemPath := sbiConfig.Tls.Pem
 	if pemPath == "" {
@@ -148,7 +143,7 @@ func (s *Server) secureServe() error {
 }
 
 func (s *Server) serve() error {
-	sbiConfig := s.Nssf.Config().Configuration.Sbi
+	sbiConfig := s.Config().Configuration.Sbi
 
 	switch sbiConfig.Scheme {
 	case "http":

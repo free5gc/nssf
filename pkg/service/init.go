@@ -9,8 +9,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"runtime/debug"
 	"sync"
+	"syscall"
 
 	"github.com/sirupsen/logrus"
 
@@ -18,13 +20,9 @@ import (
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/sbi"
 	"github.com/free5gc/nssf/internal/sbi/consumer"
+	"github.com/free5gc/nssf/pkg/app"
 	"github.com/free5gc/nssf/pkg/factory"
 )
-
-type App interface {
-	Config() *factory.Config
-	Context() *nssf_context.NSSFContext
-}
 
 type NssfApp struct {
 	cfg     *factory.Config
@@ -34,7 +32,7 @@ type NssfApp struct {
 	sbiServer *sbi.Server
 }
 
-var _ App = &NssfApp{}
+var _ app.NssfApp = &NssfApp{}
 
 func NewApp(cfg *factory.Config, tlsKeyLogPath string) (*NssfApp, error) {
 	nssf := &NssfApp{cfg: cfg, wg: sync.WaitGroup{}}
@@ -127,24 +125,35 @@ func (a *NssfApp) deregisterFromNrf() {
 	}
 }
 
-func (a *NssfApp) Start(ctx context.Context) {
+func (a *NssfApp) Start() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-sigCh  // Wait for interrupt signal to gracefully shutdown
+		cancel() // Notify each goroutine and wait them stopped
+	}()
+
 	err := a.registerToNrf()
 	if err != nil {
-		logger.MainLog.Errorf("Register to NRF failed: %+v", err)
+		return fmt.Errorf("register to NRF failed: %+v", err)
 	} else {
-		logger.MainLog.Infoln("Register to NRF successfully")
+		logger.MainLog.Infoln("register to NRF successfully")
 	}
 
 	// Graceful deregister when panic
 	defer func() {
 		if p := recover(); p != nil {
-			logger.InitLog.Errorf("panic: %v\n%s", p, string(debug.Stack()))
 			a.deregisterFromNrf()
+			logger.InitLog.Fatalf("panic: %v\n%s", p, string(debug.Stack()))
 		}
 	}()
 
 	a.sbiServer.Run(&a.wg)
 	go a.listenShutdown(ctx)
+
+	return nil
 }
 
 func (a *NssfApp) listenShutdown(ctx context.Context) {
