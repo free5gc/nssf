@@ -125,7 +125,7 @@ func (a *NssfApp) deregisterFromNrf() {
 	}
 }
 
-func (a *NssfApp) Start() error {
+func (a *NssfApp) Start() {
 	ctx, cancel := context.WithCancel(context.Background())
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
@@ -137,7 +137,7 @@ func (a *NssfApp) Start() error {
 
 	err := a.registerToNrf()
 	if err != nil {
-		return fmt.Errorf("register to NRF failed: %+v", err)
+		logger.MainLog.Errorf("register to NRF failed: %+v", err)
 	} else {
 		logger.MainLog.Infoln("register to NRF successfully")
 	}
@@ -152,8 +152,6 @@ func (a *NssfApp) Start() error {
 
 	a.sbiServer.Run(&a.wg)
 	go a.listenShutdown(ctx)
-
-	return nil
 }
 
 func (a *NssfApp) listenShutdown(ctx context.Context) {
