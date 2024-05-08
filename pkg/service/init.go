@@ -20,6 +20,7 @@ import (
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/sbi"
 	"github.com/free5gc/nssf/internal/sbi/consumer"
+	"github.com/free5gc/nssf/internal/sbi/processor"
 	"github.com/free5gc/nssf/pkg/app"
 	"github.com/free5gc/nssf/pkg/factory"
 )
@@ -30,6 +31,8 @@ type NssfApp struct {
 
 	wg        sync.WaitGroup
 	sbiServer *sbi.Server
+	processor *processor.Processor
+	consumer  *consumer.Consumer
 }
 
 var _ app.NssfApp = &NssfApp{}
@@ -39,6 +42,12 @@ func NewApp(cfg *factory.Config, tlsKeyLogPath string) (*NssfApp, error) {
 	nssf.SetLogEnable(cfg.GetLogEnable())
 	nssf.SetLogLevel(cfg.GetLogLevel())
 	nssf.SetReportCaller(cfg.GetLogReportCaller())
+
+	processor := processor.NewProcessor(nssf)
+	nssf.processor = processor
+
+	consumer := consumer.NewConsumer(nssf)
+	nssf.consumer = consumer
 
 	sbiServer := sbi.NewServer(nssf, tlsKeyLogPath)
 	nssf.sbiServer = sbiServer
@@ -54,6 +63,14 @@ func (a *NssfApp) Config() *factory.Config {
 
 func (a *NssfApp) Context() *nssf_context.NSSFContext {
 	return a.nssfCtx
+}
+
+func (a *NssfApp) Processor() *processor.Processor {
+	return a.processor
+}
+
+func (a *NssfApp) Consumer() *consumer.Consumer {
+	return a.consumer
 }
 
 func (a *NssfApp) SetLogEnable(enable bool) {
@@ -101,12 +118,8 @@ func (a *NssfApp) SetReportCaller(reportCaller bool) {
 func (a *NssfApp) registerToNrf() error {
 	nssfContext := a.nssfCtx
 
-	profile, err := consumer.BuildNFProfile(nssfContext)
-	if err != nil {
-		return fmt.Errorf("failed to build NSSF profile")
-	}
-
-	_, nssfContext.NfId, err = consumer.SendRegisterNFInstance(nssfContext.NrfUri, nssfContext.NfId, profile)
+	var err error
+	_, nssfContext.NfId, err = a.consumer.SendRegisterNFInstance(nssfContext)
 	if err != nil {
 		return fmt.Errorf("failed to register NSSF to NRF: %s", err.Error())
 	}
@@ -115,7 +128,7 @@ func (a *NssfApp) registerToNrf() error {
 }
 
 func (a *NssfApp) deregisterFromNrf() {
-	problemDetails, err := consumer.SendDeregisterNFInstance()
+	problemDetails, err := a.consumer.SendDeregisterNFInstance(a.nssfCtx.NfId)
 	if problemDetails != nil {
 		logger.InitLog.Errorf("Deregister NF instance Failed Problem[%+v]", problemDetails)
 	} else if err != nil {

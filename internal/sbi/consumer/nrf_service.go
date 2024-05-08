@@ -20,7 +20,11 @@ import (
 	"github.com/free5gc/openapi/models"
 )
 
-func BuildNFProfile(context *nssf_context.NSSFContext) (profile models.NfProfile, err error) {
+type NrfService struct {
+	nrfNfMgmtClient *Nnrf_NFManagement.APIClient
+}
+
+func (ns *NrfService) buildNFProfile(context *nssf_context.NSSFContext) (profile models.NfProfile, err error) {
 	profile.NfInstanceId = context.NfId
 	profile.NfType = models.NfType_NSSF
 	profile.NfStatus = models.NfStatus_REGISTERED
@@ -36,12 +40,15 @@ func BuildNFProfile(context *nssf_context.NSSFContext) (profile models.NfProfile
 	return
 }
 
-func SendRegisterNFInstance(nrfUri, nfInstanceId string, profile models.NfProfile) (
+func (ns *NrfService) SendRegisterNFInstance(nssfCtx *nssf_context.NSSFContext) (
 	resourceNrfUri string, retrieveNfInstanceId string, err error,
 ) {
-	configuration := Nnrf_NFManagement.NewConfiguration()
-	configuration.SetBasePath(nrfUri)
-	apiClient := Nnrf_NFManagement.NewAPIClient(configuration)
+	nfInstanceId := nssfCtx.NfId
+	profile, err := ns.buildNFProfile(nssfCtx)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to build nrf profile: %s", err.Error())
+	}
+	apiClient := ns.nrfNfMgmtClient
 
 	var res *http.Response
 	var nf models.NfProfile
@@ -88,7 +95,7 @@ func SendRegisterNFInstance(nrfUri, nfInstanceId string, profile models.NfProfil
 	return resourceNrfUri, retrieveNfInstanceId, err
 }
 
-func SendDeregisterNFInstance() (*models.ProblemDetails, error) {
+func (ns *NrfService) SendDeregisterNFInstance(nfInstanceId string) (*models.ProblemDetails, error) {
 	logger.ConsumerLog.Infof("Send Deregister NFInstance")
 
 	var err error
@@ -98,15 +105,11 @@ func SendDeregisterNFInstance() (*models.ProblemDetails, error) {
 		return pd, err
 	}
 
-	nssfSelf := nssf_context.GetSelf()
-	// Set client and set url
-	configuration := Nnrf_NFManagement.NewConfiguration()
-	configuration.SetBasePath(nssfSelf.NrfUri)
-	client := Nnrf_NFManagement.NewAPIClient(configuration)
+	client := ns.nrfNfMgmtClient
 
 	var res *http.Response
 
-	res, err = client.NFInstanceIDDocumentApi.DeregisterNFInstance(ctx, nssfSelf.NfId)
+	res, err = client.NFInstanceIDDocumentApi.DeregisterNFInstance(ctx, nfInstanceId)
 	if err == nil {
 		return nil, err
 	} else if res != nil {
