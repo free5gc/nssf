@@ -38,7 +38,9 @@ type NssfApp struct {
 var _ app.NssfApp = &NssfApp{}
 
 func NewApp(cfg *factory.Config, tlsKeyLogPath string) (*NssfApp, error) {
-	nssf := &NssfApp{cfg: cfg, wg: sync.WaitGroup{}}
+	nssf_context.Init()
+
+	nssf := &NssfApp{cfg: cfg, wg: sync.WaitGroup{}, nssfCtx: nssf_context.GetSelf()}
 	nssf.SetLogEnable(cfg.GetLogEnable())
 	nssf.SetLogLevel(cfg.GetLogLevel())
 	nssf.SetReportCaller(cfg.GetLogReportCaller())
@@ -52,8 +54,6 @@ func NewApp(cfg *factory.Config, tlsKeyLogPath string) (*NssfApp, error) {
 	sbiServer := sbi.NewServer(nssf, tlsKeyLogPath)
 	nssf.sbiServer = sbiServer
 
-	nssf_context.Init()
-	nssf.nssfCtx = nssf_context.GetSelf()
 	return nssf, nil
 }
 
