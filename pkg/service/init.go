@@ -115,11 +115,11 @@ func (a *NssfApp) SetReportCaller(reportCaller bool) {
 	logger.Log.SetReportCaller(reportCaller)
 }
 
-func (a *NssfApp) registerToNrf() error {
+func (a *NssfApp) registerToNrf(ctx context.Context) error {
 	nssfContext := a.nssfCtx
 
 	var err error
-	_, nssfContext.NfId, err = a.consumer.SendRegisterNFInstance(nssfContext)
+	_, nssfContext.NfId, err = a.consumer.SendRegisterNFInstance(ctx, nssfContext)
 	if err != nil {
 		return fmt.Errorf("failed to register NSSF to NRF: %s", err.Error())
 	}
@@ -148,7 +148,7 @@ func (a *NssfApp) Start() {
 		cancel() // Notify each goroutine and wait them stopped
 	}()
 
-	err := a.registerToNrf()
+	err := a.registerToNrf(ctx)
 	if err != nil {
 		logger.MainLog.Errorf("register to NRF failed: %+v", err)
 	} else {

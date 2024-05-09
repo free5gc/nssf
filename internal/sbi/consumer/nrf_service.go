@@ -40,7 +40,7 @@ func (ns *NrfService) buildNFProfile(context *nssf_context.NSSFContext) (profile
 	return
 }
 
-func (ns *NrfService) SendRegisterNFInstance(nssfCtx *nssf_context.NSSFContext) (
+func (ns *NrfService) SendRegisterNFInstance(ctx context.Context, nssfCtx *nssf_context.NSSFContext) (
 	resourceNrfUri string, retrieveNfInstanceId string, err error,
 ) {
 	nfInstanceId := nssfCtx.NfId
@@ -52,44 +52,51 @@ func (ns *NrfService) SendRegisterNFInstance(nssfCtx *nssf_context.NSSFContext) 
 
 	var res *http.Response
 	var nf models.NfProfile
-	for {
-		nf, res, err = apiClient.NFInstanceIDDocumentApi.RegisterNFInstance(context.TODO(), nfInstanceId, profile)
-		if err != nil || res == nil {
-			// TODO : add log
-			logger.ConsumerLog.Errorf("NSSF register to NRF Error[%s]", err.Error())
-			time.Sleep(2 * time.Second)
-			continue
-		}
-		defer func() {
-			if resCloseErr := res.Body.Close(); resCloseErr != nil {
-				logger.ConsumerLog.Errorf("NFInstanceIDDocumentApi response body cannot close: %+v", resCloseErr)
-			}
-		}()
-		status := res.StatusCode
-		if status == http.StatusOK {
-			// NFUpdate
-			break
-		} else if status == http.StatusCreated {
-			// NFRegister
-			resourceUri := res.Header.Get("Location")
-			resourceNrfUri = resourceUri[:strings.Index(resourceUri, "/nnrf-nfm/")]
-			retrieveNfInstanceId = resourceUri[strings.LastIndex(resourceUri, "/")+1:]
+	finish := false
+	for !finish {
+		select {
+		case <-ctx.Done():
+			return "", "", fmt.Errorf("context done")
 
-			oauth2 := false
-			if nf.CustomInfo != nil {
-				v, ok := nf.CustomInfo["oauth2"].(bool)
-				if ok {
-					oauth2 = v
-					logger.MainLog.Infoln("OAuth2 setting receive from NRF:", oauth2)
+		default:
+			nf, res, err = apiClient.NFInstanceIDDocumentApi.RegisterNFInstance(ctx, nfInstanceId, profile)
+			if err != nil || res == nil {
+				// TODO : add log
+				logger.ConsumerLog.Errorf("NSSF register to NRF Error[%s]", err.Error())
+				time.Sleep(2 * time.Second)
+				continue
+			}
+			defer func() {
+				if resCloseErr := res.Body.Close(); resCloseErr != nil {
+					logger.ConsumerLog.Errorf("NFInstanceIDDocumentApi response body cannot close: %+v", resCloseErr)
 				}
+			}()
+			status := res.StatusCode
+			if status == http.StatusOK {
+				// NFUpdate
+				finish = true
+			} else if status == http.StatusCreated {
+				// NFRegister
+				resourceUri := res.Header.Get("Location")
+				resourceNrfUri = resourceUri[:strings.Index(resourceUri, "/nnrf-nfm/")]
+				retrieveNfInstanceId = resourceUri[strings.LastIndex(resourceUri, "/")+1:]
+
+				oauth2 := false
+				if nf.CustomInfo != nil {
+					v, ok := nf.CustomInfo["oauth2"].(bool)
+					if ok {
+						oauth2 = v
+						logger.MainLog.Infoln("OAuth2 setting receive from NRF:", oauth2)
+					}
+				}
+				nssf_context.GetSelf().OAuth2Required = oauth2
+				if oauth2 && nssf_context.GetSelf().NrfCertPem == "" {
+					logger.CfgLog.Error("OAuth2 enable but no nrfCertPem provided in config.")
+				}
+				finish = true
+			} else {
+				fmt.Println("NRF return wrong status code", status)
 			}
-			nssf_context.GetSelf().OAuth2Required = oauth2
-			if oauth2 && nssf_context.GetSelf().NrfCertPem == "" {
-				logger.CfgLog.Error("OAuth2 enable but no nrfCertPem provided in config.")
-			}
-			break
-		} else {
-			fmt.Println("NRF return wrong status code", status)
 		}
 	}
 	return resourceNrfUri, retrieveNfInstanceId, err
