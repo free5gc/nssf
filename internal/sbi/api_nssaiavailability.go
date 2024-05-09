@@ -47,14 +47,14 @@ func (s *Server) getNssaiAvailabilityRoutes() []Route {
 			strings.ToUpper("Delete"),
 			// "/nssai-availability/subscriptions/:subscriptionId",
 			"/nssai-availability/:nfId/:subscriptionId",
-			s.Processor().HTTPNSSAIAvailabilityUnsubscribe,
+			s.Processor().HandleNSSAIAvailabilityUnsubscribeDelete,
 		},
 
 		{
 			"NSSAIAvailabilityPost",
 			strings.ToUpper("Post"),
 			"/nssai-availability/subscriptions",
-			s.Processor().HTTPNSSAIAvailabilityPost,
+			s.Processor().HandleNSSAIAvailabilityPost,
 		},
 	}
 }

@@ -20,7 +20,7 @@ import (
 	. "github.com/free5gc/openapi/models"
 )
 
-func (p *Processor) HTTPNSSAIAvailabilityPost(c *gin.Context) {
+func (p *Processor) HandleNSSAIAvailabilityPost(c *gin.Context) {
 	var createData NssfEventSubscriptionCreateData
 
 	requestBody, err := c.GetRawData()

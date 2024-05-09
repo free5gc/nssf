@@ -20,7 +20,7 @@ import (
 	"github.com/free5gc/util/httpwrapper"
 )
 
-func (p *Processor) HTTPNSSAIAvailabilityUnsubscribe(c *gin.Context) {
+func (p *Processor) HandleNSSAIAvailabilityUnsubscribeDelete(c *gin.Context) {
 	// Due to conflict of route matching, 'subscriptions' in the route is replaced with the existing wildcard ':nfId'
 	nfID := c.Param("nfId")
 	if nfID != "subscriptions" {
