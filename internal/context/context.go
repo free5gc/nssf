@@ -66,13 +66,13 @@ type NSSFContext struct {
 
 // Initialize NSSF context with configuration factory
 func InitNssfContext() {
-	Init()
-
 	nssfConfig := factory.NssfConfig
 	if nssfConfig.Configuration.NssfName != "" {
 		nssfContext.Name = nssfConfig.Configuration.NssfName
 	}
 
+	nssfContext.NfId = uuid.New().String()
+	nssfContext.Name = "NSSF"
 	nssfContext.UriScheme = nssfConfig.Configuration.Sbi.Scheme
 	nssfContext.RegisterIPv4 = nssfConfig.Configuration.Sbi.RegisterIPv4
 	nssfContext.SBIPort = nssfConfig.Configuration.Sbi.Port
