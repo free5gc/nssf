@@ -17,6 +17,7 @@ import (
 
 // Title in Problem Details for NSSF HTTP APIs
 const (
+	INTERNAL_ERROR        = "Internal server error"
 	INVALID_REQUEST       = "Invalid request message framing"
 	MALFORMED_REQUEST     = "Malformed request syntax"
 	UNAUTHORIZED_CONSUMER = "Unauthorized NF service consumer"

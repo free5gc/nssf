@@ -4,7 +4,7 @@
  * NSSF NSSAI Availability Service
  */
 
-package nssaiavailability
+package processor
 
 import (
 	"bytes"
@@ -14,6 +14,7 @@ import (
 	"reflect"
 
 	jsonpatch "github.com/evanphx/json-patch"
+	"github.com/gin-gonic/gin"
 
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/plugin"
@@ -22,14 +23,16 @@ import (
 	"github.com/free5gc/openapi/models"
 )
 
-func NfInstanceDelete(nfId string) *models.ProblemDetails {
+func (p *Processor) NssaiAvailabilityNfInstanceDelete(c *gin.Context, nfId string) {
 	var problemDetails *models.ProblemDetails
 	for i, amfConfig := range factory.NssfConfig.Configuration.AmfList {
 		if amfConfig.NfId == nfId {
 			factory.NssfConfig.Configuration.AmfList = append(
 				factory.NssfConfig.Configuration.AmfList[:i],
 				factory.NssfConfig.Configuration.AmfList[i+1:]...)
-			return nil
+
+			c.Status(http.StatusNoContent)
+			return
 		}
 	}
 
@@ -38,11 +41,12 @@ func NfInstanceDelete(nfId string) *models.ProblemDetails {
 		Status: http.StatusNotFound,
 		Detail: fmt.Sprintf("AMF ID '%s' does not exist", nfId),
 	}
-	return problemDetails
+	util.GinProblemJson(c, problemDetails)
 }
 
-func NfInstancePatch(nssaiAvailabilityUpdateInfo plugin.PatchDocument, nfId string) (
-	*models.AuthorizedNssaiAvailabilityInfo, *models.ProblemDetails,
+func (p *Processor) NssaiAvailabilityNfInstancePatch(
+	c *gin.Context,
+	nssaiAvailabilityUpdateInfo plugin.PatchDocument, nfId string,
 ) {
 	var (
 		response       *models.AuthorizedNssaiAvailabilityInfo = &models.AuthorizedNssaiAvailabilityInfo{}
@@ -86,7 +90,8 @@ func NfInstancePatch(nssaiAvailabilityUpdateInfo plugin.PatchDocument, nfId stri
 			Status: http.StatusNotFound,
 			Detail: fmt.Sprintf("AMF ID '%s' does not exist", nfId),
 		}
-		return nil, problemDetails
+		util.GinProblemJson(c, problemDetails)
+		return
 	}
 
 	// TODO: Check if returned HTTP status codes or problem details are proper when errors occur
@@ -113,7 +118,8 @@ func NfInstancePatch(nssaiAvailabilityUpdateInfo plugin.PatchDocument, nfId stri
 			Status: http.StatusBadRequest,
 			Detail: err.Error(),
 		}
-		return nil, problemDetails
+		util.GinProblemJson(c, problemDetails)
+		return
 	}
 
 	modified, err := patch.Apply(original)
@@ -123,7 +129,8 @@ func NfInstancePatch(nssaiAvailabilityUpdateInfo plugin.PatchDocument, nfId stri
 			Status: http.StatusConflict,
 			Detail: err.Error(),
 		}
-		return nil, problemDetails
+		util.GinProblemJson(c, problemDetails)
+		return
 	}
 
 	factory.NssfConfig.Lock()
@@ -135,7 +142,8 @@ func NfInstancePatch(nssaiAvailabilityUpdateInfo plugin.PatchDocument, nfId stri
 			Status: http.StatusBadRequest,
 			Detail: err.Error(),
 		}
-		return nil, problemDetails
+		util.GinProblemJson(c, problemDetails)
+		return
 	}
 
 	// Return all authorized NSSAI availability information
@@ -146,12 +154,13 @@ func NfInstancePatch(nssaiAvailabilityUpdateInfo plugin.PatchDocument, nfId stri
 
 	// TODO: Return authorized NSSAI availability information of updated TAI only
 
-	return response, nil
+	c.JSON(http.StatusOK, response)
 }
 
 // NSSAIAvailability PUT method
-func NfInstanceUpdate(nssaiAvailabilityInfo models.NssaiAvailabilityInfo, nfId string) (
-	*models.AuthorizedNssaiAvailabilityInfo, *models.ProblemDetails,
+func (p *Processor) NssaiAvailabilityNfInstanceUpdate(
+	c *gin.Context,
+	nssaiAvailabilityInfo models.NssaiAvailabilityInfo, nfId string,
 ) {
 	var (
 		response       *models.AuthorizedNssaiAvailabilityInfo = &models.AuthorizedNssaiAvailabilityInfo{}
@@ -166,7 +175,9 @@ func NfInstanceUpdate(nssaiAvailabilityInfo models.NssaiAvailabilityInfo, nfId s
 				Detail: "S-NSSAI in Requested NSSAI is not supported in PLMN",
 				Cause:  "SNSSAI_NOT_SUPPORTED",
 			}
-			return nil, problemDetails
+
+			util.GinProblemJson(c, problemDetails)
+			return
 		}
 	}
 
@@ -215,5 +226,5 @@ func NfInstanceUpdate(nssaiAvailabilityInfo models.NssaiAvailabilityInfo, nfId s
 		}
 	}
 
-	return response, problemDetails
+	c.JSON(http.StatusOK, response)
 }

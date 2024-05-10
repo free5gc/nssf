@@ -4,7 +4,7 @@
  * NSSF NSSAI Availability Service
  */
 
-package nssaiavailability
+package processor
 
 import (
 	"fmt"
@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/gin-gonic/gin"
 
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/util"
@@ -43,8 +45,9 @@ func getUnusedSubscriptionID() (string, error) {
 }
 
 // NSSAIAvailability subscription POST method
-func SubscriptionCreate(createData models.NssfEventSubscriptionCreateData) (
-	*models.NssfEventSubscriptionCreatedData, *models.ProblemDetails,
+func (p *Processor) NssaiAvailabilitySubscriptionCreate(
+	c *gin.Context,
+	createData models.NssfEventSubscriptionCreateData,
 ) {
 	var (
 		response       *models.NssfEventSubscriptionCreatedData = &models.NssfEventSubscriptionCreatedData{}
@@ -61,7 +64,9 @@ func SubscriptionCreate(createData models.NssfEventSubscriptionCreateData) (
 			Status: http.StatusNotFound,
 			Detail: err.Error(),
 		}
-		return nil, problemDetails
+
+		util.GinProblemJson(c, problemDetails)
+		return
 	}
 
 	subscription.SubscriptionId = tempID
@@ -77,10 +82,10 @@ func SubscriptionCreate(createData models.NssfEventSubscriptionCreateData) (
 	}
 	response.AuthorizedNssaiAvailabilityData = util.AuthorizeOfTaListFromConfig(subscription.SubscriptionData.TaiList)
 
-	return response, nil
+	c.JSON(http.StatusOK, response)
 }
 
-func SubscriptionUnsubscribe(subscriptionId string) *models.ProblemDetails {
+func (p *Processor) NssaiAvailabilitySubscriptionUnsubscribe(c *gin.Context, subscriptionId string) {
 	var problemDetails *models.ProblemDetails
 
 	factory.NssfConfig.Lock()
@@ -90,7 +95,8 @@ func SubscriptionUnsubscribe(subscriptionId string) *models.ProblemDetails {
 			factory.NssfConfig.Subscriptions = append(factory.NssfConfig.Subscriptions[:i],
 				factory.NssfConfig.Subscriptions[i+1:]...)
 
-			return nil
+			c.Status(http.StatusNoContent)
+			return
 		}
 	}
 
@@ -100,5 +106,6 @@ func SubscriptionUnsubscribe(subscriptionId string) *models.ProblemDetails {
 		Status: http.StatusNotFound,
 		Detail: fmt.Sprintf("Subscription ID '%s' is not available", subscriptionId),
 	}
-	return problemDetails
+
+	util.GinProblemJson(c, problemDetails)
 }

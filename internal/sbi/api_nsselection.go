@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/free5gc/nssf/internal/logger"
 )
 
 func (s *Server) getNsSelectionRoutes() []Route {
@@ -22,7 +24,14 @@ func (s *Server) getNsSelectionRoutes() []Route {
 			"NSSelectionGet",
 			strings.ToUpper("Get"),
 			"/network-slice-information",
-			s.Processor().HandleNetworkSliceInformationGet,
+			s.NetworkSliceInformationGet,
 		},
 	}
+}
+
+func (s *Server) NetworkSliceInformationGet(c *gin.Context) {
+	logger.NsselLog.Infof("Handle NSSelectionGet")
+
+	query := c.Request.URL.Query()
+	s.Processor().NSSelectionSliceInformationGet(c, query)
 }
