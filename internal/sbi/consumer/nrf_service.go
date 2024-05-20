@@ -79,7 +79,7 @@ func (ns *NrfService) SendRegisterNFInstance(ctx context.Context, nssfCtx *nssf_
 			} else if status == http.StatusCreated {
 				// NFRegister
 				resourceUri := res.Header.Get("Location")
-				resourceNrfUri = resourceUri[:strings.Index(resourceUri, "/nnrf-nfm/")]
+				resourceNrfUri, _, _ = strings.Cut(resourceUri, "/nnrf-nfm/")
 				retrieveNfInstanceId = resourceUri[strings.LastIndex(resourceUri, "/")+1:]
 
 				oauth2 := false
