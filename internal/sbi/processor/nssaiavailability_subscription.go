@@ -36,7 +36,7 @@ func getUnusedSubscriptionID() (string, error) {
 			if idx == math.MaxUint32 {
 				return "", fmt.Errorf("No available subscription ID")
 			}
-			idx = idx + 1
+			idx++
 		} else {
 			break
 		}

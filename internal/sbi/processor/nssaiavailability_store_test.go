@@ -1,4 +1,4 @@
-package processor
+package processor_test
 
 import (
 	"encoding/json"
@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/mock/gomock"
 
+	"github.com/free5gc/nssf/internal/sbi/processor"
 	"github.com/free5gc/nssf/internal/util"
 	"github.com/free5gc/nssf/pkg/app"
 	"github.com/free5gc/nssf/pkg/factory"
@@ -31,7 +32,7 @@ func TestMain(m *testing.M) {
 
 func TestNfInstanceDelete(t *testing.T) {
 	mockNssfApp := app.NewMockNssfApp(gomock.NewController(t))
-	processor := NewProcessor(mockNssfApp)
+	processor := processor.NewProcessor(mockNssfApp)
 	httpRecorder := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(httpRecorder)
 
