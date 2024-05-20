@@ -63,7 +63,8 @@ func (ns *NrfService) SendRegisterNFInstance(ctx context.Context, nssfCtx *nssf_
 			if err != nil || res == nil {
 				// TODO : add log
 				logger.ConsumerLog.Errorf("NSSF register to NRF Error[%s]", err.Error())
-				time.Sleep(2 * time.Second)
+				const retryInterval = 2 * time.Second
+				time.Sleep(retryInterval)
 				continue
 			}
 			defer func() {

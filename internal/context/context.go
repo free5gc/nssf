@@ -22,6 +22,8 @@ import (
 	"github.com/free5gc/openapi/oauth"
 )
 
+const NRF_PORT = 29510
+
 var nssfContext = NSSFContext{}
 
 // Initialize NSSF context with default value
@@ -40,7 +42,7 @@ func Init() {
 	}
 	nssfContext.NfService = initNfService(serviceName, "1.0.0")
 
-	nssfContext.NrfUri = fmt.Sprintf("%s://%s:%d", models.UriScheme_HTTPS, nssfContext.RegisterIPv4, 29510)
+	nssfContext.NrfUri = fmt.Sprintf("%s://%s:%d", models.UriScheme_HTTPS, nssfContext.RegisterIPv4, NRF_PORT)
 }
 
 type NFContext interface {
@@ -93,7 +95,7 @@ func InitNssfContext() {
 		nssfContext.NrfUri = nssfConfig.Configuration.NrfUri
 	} else {
 		logger.InitLog.Warn("NRF Uri is empty! Using localhost as NRF IPv4 address.")
-		nssfContext.NrfUri = fmt.Sprintf("%s://%s:%d", nssfContext.UriScheme, "127.0.0.1", 29510)
+		nssfContext.NrfUri = fmt.Sprintf("%s://%s:%d", nssfContext.UriScheme, "127.0.0.1", NRF_PORT)
 	}
 	nssfContext.NrfCertPem = nssfConfig.Configuration.NrfCertPem
 	nssfContext.SupportedPlmnList = nssfConfig.Configuration.SupportedPlmnList
