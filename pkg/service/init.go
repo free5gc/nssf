@@ -45,9 +45,6 @@ func NewApp(cfg *factory.Config, tlsKeyLogPath string) (*NssfApp, error) {
 	nssf.SetLogLevel(cfg.GetLogLevel())
 	nssf.SetReportCaller(cfg.GetLogReportCaller())
 
-	processor := processor.NewProcessor(nssf)
-	nssf.processor = processor
-
 	consumer := consumer.NewConsumer(nssf)
 	nssf.consumer = consumer
 
