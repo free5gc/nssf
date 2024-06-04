@@ -19,18 +19,24 @@ import (
 	logger_util "github.com/free5gc/util/logger"
 )
 
-type Server struct {
+type nssfApp interface {
 	app.NssfApp
+
+	Processor() *processor.Processor
+}
+
+type Server struct {
+	nssfApp
 
 	httpServer *http.Server
 	router     *gin.Engine
 	processor  *processor.Processor
 }
 
-func NewServer(nssf app.NssfApp, tlsKeyLogPath string) *Server {
+func NewServer(nssf nssfApp, tlsKeyLogPath string) *Server {
 	s := &Server{
-		NssfApp:   nssf,
-		processor: processor.NewProcessor(nssf),
+		nssfApp:   nssf,
+		processor: nssf.Processor(),
 	}
 
 	s.router = newRouter(s)
