@@ -22,6 +22,7 @@ import (
 
 type NrfService struct {
 	nrfNfMgmtClient *Nnrf_NFManagement.APIClient
+	// NOTE: No mutex needed. One connection at a time.
 }
 
 func (ns *NrfService) buildNFProfile(context *nssf_context.NSSFContext) (profile models.NfProfile, err error) {
