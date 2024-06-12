@@ -12,7 +12,7 @@ import (
 func (s *Server) getNsSelectionRoutes() []Route {
 	return []Route{
 		{
-			"Helth Check",
+			"Health Check",
 			strings.ToUpper("Get"),
 			"/",
 			func(ctx *gin.Context) {
