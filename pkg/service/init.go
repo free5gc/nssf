@@ -9,10 +9,8 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/signal"
 	"runtime/debug"
 	"sync"
-	"syscall"
 
 	"github.com/sirupsen/logrus"
 
@@ -29,6 +27,7 @@ type NssfApp struct {
 	cfg     *factory.Config
 	nssfCtx *nssf_context.NSSFContext
 
+	ctx       context.Context
 	wg        sync.WaitGroup
 	sbiServer *sbi.Server
 	processor *processor.Processor
@@ -37,10 +36,15 @@ type NssfApp struct {
 
 var _ app.NssfApp = &NssfApp{}
 
-func NewApp(cfg *factory.Config, tlsKeyLogPath string) (*NssfApp, error) {
+func NewApp(ctx context.Context, cfg *factory.Config, tlsKeyLogPath string) (*NssfApp, error) {
 	nssf_context.InitNssfContext()
 
-	nssf := &NssfApp{cfg: cfg, wg: sync.WaitGroup{}, nssfCtx: nssf_context.GetSelf()}
+	nssf := &NssfApp{
+		cfg:     cfg,
+		ctx:     ctx,
+		wg:      sync.WaitGroup{},
+		nssfCtx: nssf_context.GetSelf(),
+	}
 	nssf.SetLogEnable(cfg.GetLogEnable())
 	nssf.SetLogLevel(cfg.GetLogLevel())
 	nssf.SetReportCaller(cfg.GetLogReportCaller())
@@ -139,16 +143,7 @@ func (a *NssfApp) deregisterFromNrf() {
 }
 
 func (a *NssfApp) Start() {
-	ctx, cancel := context.WithCancel(context.Background())
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-
-	go func() {
-		<-sigCh  // Wait for interrupt signal to gracefully shutdown
-		cancel() // Notify each goroutine and wait them stopped
-	}()
-
-	err := a.registerToNrf(ctx)
+	err := a.registerToNrf(a.ctx)
 	if err != nil {
 		logger.MainLog.Errorf("register to NRF failed: %+v", err)
 	} else {
@@ -164,7 +159,7 @@ func (a *NssfApp) Start() {
 	}()
 
 	a.sbiServer.Run(&a.wg)
-	go a.listenShutdown(ctx)
+	go a.listenShutdown(a.ctx)
 }
 
 func (a *NssfApp) listenShutdown(ctx context.Context) {
