@@ -19,6 +19,7 @@ import (
 const (
 	INTERNAL_ERROR        = "Internal server error"
 	INVALID_REQUEST       = "Invalid request message framing"
+	MANDATORY_IE_MISSING  = "Mandatory IEs are missing"
 	MALFORMED_REQUEST     = "Malformed request syntax"
 	UNAUTHORIZED_CONSUMER = "Unauthorized NF service consumer"
 	UNSUPPORTED_RESOURCE  = "Unsupported request resources"

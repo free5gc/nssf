@@ -129,6 +129,26 @@ func (p *Processor) NSSelectionSliceInformationGet(c *gin.Context, query url.Val
 		return
 	}
 
+	if param.Tai == nil && param.HomePlmnId == nil {
+		problemDetails = &models.ProblemDetails{
+			Title:  util.MANDATORY_IE_MISSING,
+			Status: http.StatusBadRequest,
+			Cause:  "MANDATORY_IE_MISSING",
+			Detail: "Either `tai` or `home-plmn-id` should be provided",
+			InvalidParams: []models.InvalidParam{
+				{
+					Param: "tai",
+				},
+				{
+					Param: "home-plmn-id",
+				},
+			},
+		}
+
+		util.GinProblemJson(c, problemDetails)
+		return
+	}
+
 	if param.SliceInfoRequestForRegistration != nil {
 		// Network slice information is requested during the Registration procedure
 		status, response, problemDetails = nsselectionForRegistration(param)
@@ -622,6 +642,7 @@ func nsselectionForPduSession(param plugin.NsselectionQueryParameter) (
 		// Return ProblemDetails indicating S-NSSAI is not supported
 		// TODO: Based on TS 23.501 V15.2.0, if the Requested NSSAI includes an S-NSSAI that is not valid in the
 		//       Serving PLMN, the NSSF may derive the Configured NSSAI for Serving PLMN
+
 		problemDetails := &models.ProblemDetails{
 			Title:  util.UNSUPPORTED_RESOURCE,
 			Status: http.StatusForbidden,
@@ -691,6 +712,8 @@ func nsselectionForPduSession(param plugin.NsselectionQueryParameter) (
 		authorizedNetworkSliceInfo.NsiInformation = new(models.NsiInformation)
 		*authorizedNetworkSliceInfo.NsiInformation = nsiInformation
 	}
+
+	logger.NsselLog.Infof("authorizedNetworkSliceInfo: %+v", authorizedNetworkSliceInfo)
 
 	return http.StatusOK, authorizedNetworkSliceInfo, nil
 }
