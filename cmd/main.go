@@ -75,7 +75,6 @@ func action(cliCtx *cli.Context) error {
 	NSSF = nssf
 
 	nssf.Start()
-	nssf.Wait()
 
 	return nil
 }

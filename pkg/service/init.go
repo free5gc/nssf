@@ -28,6 +28,7 @@ type NssfApp struct {
 	nssfCtx *nssf_context.NSSFContext
 
 	ctx       context.Context
+	cancel    context.CancelFunc
 	wg        sync.WaitGroup
 	sbiServer *sbi.Server
 	processor *processor.Processor
@@ -41,13 +42,14 @@ func NewApp(ctx context.Context, cfg *factory.Config, tlsKeyLogPath string) (*Ns
 
 	nssf := &NssfApp{
 		cfg:     cfg,
-		ctx:     ctx,
 		wg:      sync.WaitGroup{},
 		nssfCtx: nssf_context.GetSelf(),
 	}
 	nssf.SetLogEnable(cfg.GetLogEnable())
 	nssf.SetLogLevel(cfg.GetLogLevel())
 	nssf.SetReportCaller(cfg.GetLogReportCaller())
+
+	nssf.ctx, nssf.cancel = context.WithCancel(ctx)
 
 	processor := processor.NewProcessor(nssf)
 	nssf.processor = processor
@@ -159,19 +161,24 @@ func (a *NssfApp) Start() {
 	}()
 
 	a.sbiServer.Run(&a.wg)
+
 	go a.listenShutdown(a.ctx)
+	a.Wait()
 }
 
 func (a *NssfApp) listenShutdown(ctx context.Context) {
 	<-ctx.Done()
-	a.Terminate()
+	a.terminateProcedure()
 }
 
 func (a *NssfApp) Terminate() {
+	a.cancel()
+}
+
+func (a *NssfApp) terminateProcedure() {
 	logger.MainLog.Infof("Terminating NSSF...")
 	a.deregisterFromNrf()
 	a.sbiServer.Shutdown()
-	a.Wait()
 }
 
 func (a *NssfApp) Wait() {
