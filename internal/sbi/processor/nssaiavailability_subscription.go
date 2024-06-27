@@ -4,7 +4,7 @@
  * NSSF NSSAI Availability Service
  */
 
-package producer
+package processor
 
 import (
 	"fmt"
@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/gin-gonic/gin"
 
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/util"
@@ -34,7 +36,7 @@ func getUnusedSubscriptionID() (string, error) {
 			if idx == math.MaxUint32 {
 				return "", fmt.Errorf("No available subscription ID")
 			}
-			idx = idx + 1
+			idx++
 		} else {
 			break
 		}
@@ -43,8 +45,9 @@ func getUnusedSubscriptionID() (string, error) {
 }
 
 // NSSAIAvailability subscription POST method
-func NSSAIAvailabilityPostProcedure(createData models.NssfEventSubscriptionCreateData) (
-	*models.NssfEventSubscriptionCreatedData, *models.ProblemDetails,
+func (p *Processor) NssaiAvailabilitySubscriptionCreate(
+	c *gin.Context,
+	createData models.NssfEventSubscriptionCreateData,
 ) {
 	var (
 		response       *models.NssfEventSubscriptionCreatedData = &models.NssfEventSubscriptionCreatedData{}
@@ -56,12 +59,14 @@ func NSSAIAvailabilityPostProcedure(createData models.NssfEventSubscriptionCreat
 	if err != nil {
 		logger.NssaiavailLog.Warnf(err.Error())
 
-		*problemDetails = models.ProblemDetails{
+		problemDetails = &models.ProblemDetails{
 			Title:  util.UNSUPPORTED_RESOURCE,
 			Status: http.StatusNotFound,
 			Detail: err.Error(),
 		}
-		return nil, problemDetails
+
+		util.GinProblemJson(c, problemDetails)
+		return
 	}
 
 	subscription.SubscriptionId = tempID
@@ -77,10 +82,10 @@ func NSSAIAvailabilityPostProcedure(createData models.NssfEventSubscriptionCreat
 	}
 	response.AuthorizedNssaiAvailabilityData = util.AuthorizeOfTaListFromConfig(subscription.SubscriptionData.TaiList)
 
-	return response, nil
+	c.JSON(http.StatusOK, response)
 }
 
-func NSSAIAvailabilityUnsubscribeProcedure(subscriptionId string) *models.ProblemDetails {
+func (p *Processor) NssaiAvailabilitySubscriptionUnsubscribe(c *gin.Context, subscriptionId string) {
 	var problemDetails *models.ProblemDetails
 
 	factory.NssfConfig.Lock()
@@ -90,15 +95,17 @@ func NSSAIAvailabilityUnsubscribeProcedure(subscriptionId string) *models.Proble
 			factory.NssfConfig.Subscriptions = append(factory.NssfConfig.Subscriptions[:i],
 				factory.NssfConfig.Subscriptions[i+1:]...)
 
-			return nil
+			c.Status(http.StatusNoContent)
+			return
 		}
 	}
 
 	// No specific subscription ID exists
-	*problemDetails = models.ProblemDetails{
+	problemDetails = &models.ProblemDetails{
 		Title:  util.UNSUPPORTED_RESOURCE,
 		Status: http.StatusNotFound,
 		Detail: fmt.Sprintf("Subscription ID '%s' is not available", subscriptionId),
 	}
-	return problemDetails
+
+	util.GinProblemJson(c, problemDetails)
 }

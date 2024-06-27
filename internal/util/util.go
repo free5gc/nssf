@@ -17,7 +17,9 @@ import (
 
 // Title in Problem Details for NSSF HTTP APIs
 const (
+	INTERNAL_ERROR        = "Internal server error"
 	INVALID_REQUEST       = "Invalid request message framing"
+	MANDATORY_IE_MISSING  = "Mandatory IEs are missing"
 	MALFORMED_REQUEST     = "Malformed request syntax"
 	UNAUTHORIZED_CONSUMER = "Unauthorized NF service consumer"
 	UNSUPPORTED_RESOURCE  = "Unsupported request resources"
@@ -393,7 +395,8 @@ func AddAllowedSnssai(allowedSnssai models.AllowedSnssai, accessType models.Acce
 	for i := range authorizedNetworkSliceInfo.AllowedNssaiList {
 		if authorizedNetworkSliceInfo.AllowedNssaiList[i].AccessType == accessType {
 			hitAllowedNssai = true
-			if len(authorizedNetworkSliceInfo.AllowedNssaiList[i].AllowedSnssaiList) == 8 {
+			const MAX_ALLOWED_SNSSAI = 8
+			if len(authorizedNetworkSliceInfo.AllowedNssaiList[i].AllowedSnssaiList) == MAX_ALLOWED_SNSSAI {
 				logger.UtilLog.Infof("Unable to add a new Allowed S-NSSAI since already eight S-NSSAIs in Allowed NSSAI")
 			} else {
 				authorizedNetworkSliceInfo.AllowedNssaiList[i].AllowedSnssaiList = append(
