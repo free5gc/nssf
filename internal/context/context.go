@@ -59,7 +59,7 @@ type NSSFContext struct {
 	// HttpIpv6Address string
 	BindingIPv4       string
 	SBIPort           int
-	NfService         map[models.ServiceName]models.NfService
+	NfService         map[models.ServiceName]models.NrfNfManagementNfService
 	NrfUri            string
 	NrfCertPem        string
 	SupportedPlmnList []models.PlmnId
@@ -102,15 +102,15 @@ func InitNssfContext() {
 }
 
 func initNfService(serviceName []models.ServiceName, version string) (
-	nfService map[models.ServiceName]models.NfService,
+	nfService map[models.ServiceName]models.NrfNfManagementNfService,
 ) {
 	versionUri := "v" + strings.Split(version, ".")[0]
-	nfService = make(map[models.ServiceName]models.NfService)
+	nfService = make(map[models.ServiceName]models.NrfNfManagementNfService)
 	for idx, name := range serviceName {
-		nfService[name] = models.NfService{
+		nfService[name] = models.NrfNfManagementNfService{
 			ServiceInstanceId: strconv.Itoa(idx),
 			ServiceName:       name,
-			Versions: &[]models.NfServiceVersion{
+			Versions: []models.NfServiceVersion{
 				{
 					ApiFullVersion:  version,
 					ApiVersionInUri: versionUri,
@@ -119,10 +119,10 @@ func initNfService(serviceName []models.ServiceName, version string) (
 			Scheme:          nssfContext.UriScheme,
 			NfServiceStatus: models.NfServiceStatus_REGISTERED,
 			ApiPrefix:       GetIpv4Uri(),
-			IpEndPoints: &[]models.IpEndPoint{
+			IpEndPoints: []models.IpEndPoint{
 				{
 					Ipv4Address: nssfContext.RegisterIPv4,
-					Transport:   models.TransportProtocol_TCP,
+					Transport:   models.NrfNfManagementTransportProtocol_TCP,
 					Port:        int32(nssfContext.SBIPort),
 				},
 			},
@@ -140,13 +140,13 @@ func GetSelf() *NSSFContext {
 	return &nssfContext
 }
 
-func (c *NSSFContext) GetTokenCtx(serviceName models.ServiceName, targetNF models.NfType) (
+func (c *NSSFContext) GetTokenCtx(serviceName models.ServiceName, targetNF models.NrfNfManagementNfType) (
 	context.Context, *models.ProblemDetails, error,
 ) {
 	if !c.OAuth2Required {
 		return context.TODO(), nil, nil
 	}
-	return oauth.GetTokenCtx(models.NfType_NSSF, targetNF,
+	return oauth.GetTokenCtx(models.NrfNfManagementNfType_NSSF, targetNF,
 		c.NfId, c.NrfUri, string(serviceName))
 }
 
