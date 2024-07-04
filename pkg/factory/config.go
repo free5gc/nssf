@@ -168,7 +168,7 @@ type AmfConfig struct {
 type TaConfig struct {
 	Tai                  *models.Tai               `yaml:"tai"`
 	AccessType           *models.AccessType        `yaml:"accessType"`
-	SupportedSnssaiList  []models.Snssai           `yaml:"supportedSnssaiList"`
+	SupportedSnssaiList  []models.ExtSnssai        `yaml:"supportedSnssaiList"`
 	RestrictedSnssaiList []models.RestrictedSnssai `yaml:"restrictedSnssaiList,omitempty"`
 }
 
