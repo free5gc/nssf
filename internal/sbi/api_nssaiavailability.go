@@ -62,6 +62,20 @@ func (s *Server) getNssaiAvailabilityRoutes() []Route {
 			"/nssai-availability/subscriptions",
 			s.NSSAIAvailabilityPost,
 		},
+
+		{
+			"NSSAIAvailabilityPatchSubscriptions",
+			http.MethodPatch,
+			"/nssai-availability/subscriptions/:subscriptionId",
+			s.NSSAIAvailabilitySubscriptionPatch,
+		},
+
+		{
+			"NSSAIAvailabilityDiscoverOptions",
+			http.MethodOptions,
+			"/nssai-availability",
+			s.NSSAIAvailabilityOptions,
+		},
 	}
 }
 
@@ -177,6 +191,10 @@ func (s *Server) NSSAIAvailabilityPut(c *gin.Context) {
 	s.Processor().NssaiAvailabilityNfInstanceUpdate(c, nssaiAvailabilityInfo, nfId)
 }
 
+func (s *Server) NSSAIAvailabilitySubscriptionPatch(c *gin.Context) {
+	c.Status(http.StatusNotImplemented)
+}
+
 func (s *Server) NSSAIAvailabilityPost(c *gin.Context) {
 	var createData models.NssfEventSubscriptionCreateData
 
@@ -209,6 +227,10 @@ func (s *Server) NSSAIAvailabilityPost(c *gin.Context) {
 	}
 
 	s.Processor().NssaiAvailabilitySubscriptionCreate(c, createData)
+}
+
+func (s *Server) NSSAIAvailabilityOptions(c *gin.Context) {
+	c.Status(http.StatusNotImplemented)
 }
 
 func (s *Server) NSSAIAvailabilityUnsubscribeDelete(c *gin.Context) {
