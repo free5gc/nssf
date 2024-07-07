@@ -25,6 +25,8 @@ func BindErrorInvalidParamsMessages(err error) []models.InvalidParam {
 				ip.Reason = fmt.Sprintf("The `%s` field is required when `%s` is present.", e.Field(), e.Param())
 			case "required_without":
 				ip.Reason = fmt.Sprintf("The `%s` field is required when `%s` is not present.", e.Field(), e.Param())
+			case "uuid":
+				ip.Reason = fmt.Sprintf("The `%s` field must be a valid UUID.", e.Field())
 			default:
 				ip.Reason = fmt.Sprintf("Failed on the `%s` tag.", e.Tag())
 			}

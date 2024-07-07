@@ -148,17 +148,23 @@ func (s *Server) NSSAIAvailabilityPatch(c *gin.Context) {
 	s.Processor().NssaiAvailabilityNfInstancePatch(c, patchDocument, nfId)
 }
 
+type NssaiAvailabilityPutParams struct {
+	NfId string `uri:"nfId" binding:"required,uuid"`
+}
+
 // NSSAIAvailabilityPut - Updates/replaces the NSSF
 // with the S-NSSAIs the NF service consumer (e.g AMF) supports per TA
 func (s *Server) NSSAIAvailabilityPut(c *gin.Context) {
 	logger.NssaiavailLog.Infof("Handle NSSAIAvailabilityPut")
 
-	nfId := c.Params.ByName("nfId")
-
-	if nfId == "" {
+	// nfId := c.Params.ByName("nfId")
+	var params NssaiAvailabilityPutParams
+	if err := c.ShouldBindUri(&params); err != nil {
 		problemDetails := &models.ProblemDetails{
-			Status: http.StatusBadRequest,
-			Cause:  "UNSPECIFIED", // TODO: Check if this is the correct cause
+			Title:         "Malformed Request",
+			Status:        http.StatusBadRequest,
+			Cause:         "MALFORMED_REQUEST",
+			InvalidParams: util.BindErrorInvalidParamsMessages(err),
 		}
 
 		util.GinProblemJson(c, problemDetails)
@@ -188,7 +194,7 @@ func (s *Server) NSSAIAvailabilityPut(c *gin.Context) {
 		return
 	}
 
-	s.Processor().NssaiAvailabilityNfInstanceUpdate(c, nssaiAvailabilityInfo, nfId)
+	s.Processor().NssaiAvailabilityNfInstanceUpdate(c, nssaiAvailabilityInfo, params.NfId)
 }
 
 func (s *Server) NSSAIAvailabilitySubscriptionPatch(c *gin.Context) {
