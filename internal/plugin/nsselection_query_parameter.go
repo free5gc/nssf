@@ -9,7 +9,7 @@ import (
 )
 
 type NsselectionQueryParameter struct {
-	NfType *NfType `json:"nf-type"`
+	NfType *NrfNfManagementNfType `json:"nf-type"`
 
 	NfId string `json:"nf-id"`
 

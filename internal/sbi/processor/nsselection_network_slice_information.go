@@ -24,7 +24,7 @@ import (
 
 type NetworkSliceInformationGetQuery struct {
 	// nolint: lll
-	NfType models.NfType `form:"nf-type" binding:"required,oneof=NRF UDM AMF SMF AUSF NEF PCF SMSF NSSF UDR LMF GMLC 5G_EIR SEPP UPF N3IWF AF UDSF BSF CHF NWDAF PCSCF CBCF HSS UCMF SOR_AF SPAF MME SCSAS SCEF SCP NSSAAF ICSCF SCSCF DRA IMS_AS AANF 5G_DDNMF NSACF MFAF EASDF DCCF MB_SMF TSCTSF ADRF GBA_BSF CEF MB_UPF NSWOF PKMF MNPF SMS_GMSC SMS_IWMSC MBSF MBSTF PANF IP_SM_GW SMS_ROUTER"`
+	NfType models.NrfNfManagementNfType `form:"nf-type" binding:"required,oneof=NRF UDM AMF SMF AUSF NEF PCF SMSF NSSF UDR LMF GMLC 5G_EIR SEPP UPF N3IWF AF UDSF BSF CHF NWDAF PCSCF CBCF HSS UCMF SOR_AF SPAF MME SCSAS SCEF SCP NSSAAF ICSCF SCSCF DRA IMS_AS AANF 5G_DDNMF NSACF MFAF EASDF DCCF MB_SMF TSCTSF ADRF GBA_BSF CEF MB_UPF NSWOF PKMF MNPF SMS_GMSC SMS_IWMSC MBSF MBSTF PANF IP_SM_GW SMS_ROUTER"`
 
 	NfId string `form:"nf-id" binding:"required,uuid"`
 
@@ -45,8 +45,8 @@ type NetworkSliceInformationGetQuery struct {
 // Check if the NF service consumer is authorized
 // TODO: Check if the NF service consumer is legal with local configuration, or possibly after querying NRF through
 // `nf-id` e.g. Whether the V-NSSF is authorized
-func checkNfServiceConsumer(nfType models.NfType) error {
-	if nfType != models.NfType_AMF && nfType != models.NfType_NSSF {
+func checkNfServiceConsumer(nfType models.NrfNfManagementNfType) error {
+	if nfType != models.NrfNfManagementNfType_AMF && nfType != models.NrfNfManagementNfType_NSSF {
 		return fmt.Errorf("`nf-type`:'%s' is not authorized to retrieve the slice selection information", string(nfType))
 	}
 
