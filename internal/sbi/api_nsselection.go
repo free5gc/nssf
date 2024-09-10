@@ -2,7 +2,6 @@ package sbi
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -16,7 +15,7 @@ func (s *Server) getNsSelectionRoutes() []Route {
 	return []Route{
 		{
 			"Health Check",
-			strings.ToUpper("Get"),
+			http.MethodGet,
 			"/",
 			func(ctx *gin.Context) {
 				ctx.JSON(http.StatusOK, gin.H{"status": "Service Available"})
@@ -25,7 +24,7 @@ func (s *Server) getNsSelectionRoutes() []Route {
 
 		{
 			"NSSelectionGet",
-			strings.ToUpper("Get"),
+			http.MethodGet,
 			"/network-slice-information",
 			s.NetworkSliceInformationGet,
 		},
