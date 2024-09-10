@@ -53,7 +53,7 @@ func (ns *NrfService) SendRegisterNFInstance(ctx context.Context, nssfCtx *nssf_
 	apiClient := ns.nrfNfMgmtClient
 
 	var res *NFManagement.RegisterNFInstanceResponse
-	var nf models.NfProfile
+	var nf models.NrfNfManagementNfProfile
 	finish := false
 	for !finish {
 		select {
