@@ -163,7 +163,9 @@ func CheckSupportedSnssaiInTa(snssai models.Snssai, tai models.Tai) bool {
 	for _, taConfig := range factory.NssfConfig.Configuration.TaList {
 		if reflect.DeepEqual(*taConfig.Tai, tai) {
 			for _, supportedSnssai := range taConfig.SupportedSnssaiList {
-				SnssaiEqualFold(supportedSnssai, snssai)
+				if SnssaiEqualFold(supportedSnssai, snssai) {
+					return true
+				}
 			}
 			return false
 		}
@@ -237,7 +239,9 @@ func CheckStandardSnssai(snssai models.Snssai) bool {
 // Check whether the NSSAI contains the specific S-NSSAI
 func CheckSnssaiInNssai(targetSnssai models.Snssai, nssai []models.ExtSnssai) bool {
 	for _, snssai := range nssai {
-		SnssaiEqualFold(snssai, targetSnssai)
+		if SnssaiEqualFold(snssai, targetSnssai) {
+			return true
+		}
 	}
 	return false
 }
