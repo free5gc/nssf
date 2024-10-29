@@ -26,7 +26,7 @@ const (
 	NssfSbiDefaultScheme       = "https"
 	NssfDefaultNrfUri          = "https://127.0.0.10:8000"
 	NssfNssaiavailResUriPrefix = "/nnssf-nssaiavailability/v1"
-	NssfNsselectResUriPrefix   = "/nnssf-nsselection/v1"
+	NssfNsselectResUriPrefix   = "/nnssf-nsselection/v2"
 )
 
 type Config struct {
