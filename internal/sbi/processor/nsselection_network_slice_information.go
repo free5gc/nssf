@@ -29,17 +29,17 @@ type NetworkSliceInformationGetQuery struct {
 	NfId string `form:"nf-id" binding:"required,uuid"`
 
 	// nolint: lll
-	SliceInfoRequestForRegistration *models.SliceInfoForRegistration `form:"sliceInfoRequestForRegistration" binding:"omitempty"`
+	SliceInfoRequestForRegistration *models.SliceInfoForRegistration `form:"slice-info-request-for-registration" binding:"omitempty"`
 
 	// nolint: lll
-	SliceInfoRequestForPduSession *models.SliceInfoForPduSession `form:"sliceInfoRequestForPduSession" binding:"omitempty"`
+	SliceInfoRequestForPduSession *models.SliceInfoForPduSession `form:"slice-info-request-for-pdu-session" binding:"omitempty"`
 
 	// nolint: lll
-	SliceInfoRequestForUeConfigurationUpdate *models.SliceInfoForUeConfigurationUpdate `form:"sliceInfoRequestForUeConfigurationUpdate" binding:"omitempty"`
+	SliceInfoRequestForUeConfigurationUpdate *models.SliceInfoForUeConfigurationUpdate `form:"slice-info-request-for-ue-configuration-update" binding:"omitempty"`
 
 	HomePlmnId        *models.PlmnId `form:"home-plmn-id" binding:"required_without=Tai,omitempty"`
 	Tai               *models.Tai    `form:"tai" binding:"required_without=HomePlmnId,omitempty"`
-	SupportedFeatures string         `form:"supportedFeatures"`
+	SupportedFeatures string         `form:"supported-features"`
 }
 
 // Check if the NF service consumer is authorized
