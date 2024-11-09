@@ -102,7 +102,7 @@ func (ns *NrfService) SendDeregisterNFInstance(nfInstanceId string) (*models.Pro
 
 	var err error
 
-	ctx, pd, err := nssf_context.GetSelf().GetTokenCtx(models.ServiceName_NNRF_NFM, models.NrfNfManagementNfType_NRF)
+	ctx, pd, err := nssf_context.GetSelf().GetTokenCtx(models.ServiceName_NNRF_NFM, models.NrfNfManagementNfType_NSSF)
 	if err != nil {
 		return pd, err
 	}
@@ -117,7 +117,10 @@ func (ns *NrfService) SendDeregisterNFInstance(nfInstanceId string) (*models.Pro
 	if err != nil {
 		if apiErr, ok := err.(openapi.GenericOpenAPIError); ok {
 			// API error
-			return apiErr.Model().(*models.ProblemDetails), err
+			if deregError, ok2 := apiErr.Model().(NFManagement.DeregisterNFInstanceError); ok2 {
+				return &deregError.ProblemDetails, err
+			}
+			return nil, err
 		}
 
 		// Golang error
