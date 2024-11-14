@@ -78,6 +78,7 @@ func (ns *NrfService) SendRegisterNFInstance(ctx context.Context, nssfCtx *nssf_
 			resourceUri := res.Location
 			resourceNrfUri, _, _ = strings.Cut(resourceUri, "/nnrf-nfm/")
 			retrieveNfInstanceId = resourceUri[strings.LastIndex(resourceUri, "/")+1:]
+			nf = res.NrfNfManagementNfProfile
 
 			oauth2 := false
 			if nf.CustomInfo != nil {
@@ -98,11 +99,11 @@ func (ns *NrfService) SendRegisterNFInstance(ctx context.Context, nssfCtx *nssf_
 }
 
 func (ns *NrfService) SendDeregisterNFInstance(nfInstanceId string) (*models.ProblemDetails, error) {
-	logger.ConsumerLog.Infof("Send Deregister NFInstance")
+	logger.ConsumerLog.Infof("Send Deregister NFInstance [%s]", nfInstanceId)
 
 	var err error
 
-	ctx, pd, err := nssf_context.GetSelf().GetTokenCtx(models.ServiceName_NNRF_NFM, models.NrfNfManagementNfType_NSSF)
+	ctx, pd, err := nssf_context.GetSelf().GetTokenCtx(models.ServiceName_NNRF_NFM, models.NrfNfManagementNfType_NRF)
 	if err != nil {
 		return pd, err
 	}
