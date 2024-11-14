@@ -70,7 +70,6 @@ func (p *Processor) NSSelectionSliceInformationGet(
 	// Check permission of NF service consumer
 	err := checkNfServiceConsumer(param.NfType)
 	if err != nil {
-		// status = http.StatusForbidden
 		problemDetails = &models.ProblemDetails{
 			Title:  util.UNAUTHORIZED_CONSUMER,
 			Status: http.StatusForbidden,

@@ -48,6 +48,5 @@ func (s *Server) NetworkSliceInformationGet(c *gin.Context) {
 		return
 	}
 
-	// query := c.Request.URL.Query()
 	s.Processor().NSSelectionSliceInformationGet(c, query)
 }
