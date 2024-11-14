@@ -156,7 +156,6 @@ type NssaiAvailabilityPutParams struct {
 func (s *Server) NSSAIAvailabilityPut(c *gin.Context) {
 	logger.NssaiavailLog.Infof("Handle NSSAIAvailabilityPut")
 
-	// nfId := c.Params.ByName("nfId")
 	var params NssaiAvailabilityPutParams
 	if err := c.ShouldBindUri(&params); err != nil {
 		problemDetails := &models.ProblemDetails{
