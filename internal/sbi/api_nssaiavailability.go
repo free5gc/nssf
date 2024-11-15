@@ -2,7 +2,6 @@ package sbi
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -17,7 +16,7 @@ func (s *Server) getNssaiAvailabilityRoutes() []Route {
 	return []Route{
 		{
 			"Health Check",
-			strings.ToUpper("Get"),
+			http.MethodGet,
 			"/",
 			func(ctx *gin.Context) {
 				ctx.JSON(http.StatusOK, gin.H{"status": "Service Available"})
@@ -26,21 +25,21 @@ func (s *Server) getNssaiAvailabilityRoutes() []Route {
 
 		{
 			"NSSAIAvailabilityDelete",
-			strings.ToUpper("Delete"),
+			http.MethodDelete,
 			"/nssai-availability/:nfId",
 			s.NSSAIAvailabilityDelete,
 		},
 
 		{
 			"NSSAIAvailabilityPatch",
-			strings.ToUpper("Patch"),
+			http.MethodPatch,
 			"/nssai-availability/:nfId",
 			s.NSSAIAvailabilityPatch,
 		},
 
 		{
 			"NSSAIAvailabilityPut",
-			strings.ToUpper("Put"),
+			http.MethodPut,
 			"/nssai-availability/:nfId",
 			s.NSSAIAvailabilityPut,
 		},
@@ -50,7 +49,7 @@ func (s *Server) getNssaiAvailabilityRoutes() []Route {
 		// Simply replace 'subscriptions' with ':nfId' and check if ':nfId' is 'subscriptions' in handler function
 		{
 			"NSSAIAvailabilityUnsubscribe",
-			strings.ToUpper("Delete"),
+			http.MethodDelete,
 			// "/nssai-availability/subscriptions/:subscriptionId",
 			"/nssai-availability/:nfId/:subscriptionId",
 			s.NSSAIAvailabilityUnsubscribeDelete,
@@ -58,9 +57,23 @@ func (s *Server) getNssaiAvailabilityRoutes() []Route {
 
 		{
 			"NSSAIAvailabilityPost",
-			strings.ToUpper("Post"),
+			http.MethodPost,
 			"/nssai-availability/subscriptions",
 			s.NSSAIAvailabilityPost,
+		},
+
+		{
+			"NSSAIAvailabilityPatchSubscriptions",
+			http.MethodPatch,
+			"/nssai-availability/subscriptions/:subscriptionId",
+			s.NSSAIAvailabilitySubscriptionPatch,
+		},
+
+		{
+			"NSSAIAvailabilityDiscoverOptions",
+			http.MethodOptions,
+			"/nssai-availability",
+			s.NSSAIAvailabilityOptions,
 		},
 	}
 }
@@ -134,17 +147,22 @@ func (s *Server) NSSAIAvailabilityPatch(c *gin.Context) {
 	s.Processor().NssaiAvailabilityNfInstancePatch(c, patchDocument, nfId)
 }
 
+type NssaiAvailabilityPutParams struct {
+	NfId string `uri:"nfId" binding:"required,uuid"`
+}
+
 // NSSAIAvailabilityPut - Updates/replaces the NSSF
 // with the S-NSSAIs the NF service consumer (e.g AMF) supports per TA
 func (s *Server) NSSAIAvailabilityPut(c *gin.Context) {
 	logger.NssaiavailLog.Infof("Handle NSSAIAvailabilityPut")
 
-	nfId := c.Params.ByName("nfId")
-
-	if nfId == "" {
+	var params NssaiAvailabilityPutParams
+	if err := c.ShouldBindUri(&params); err != nil {
 		problemDetails := &models.ProblemDetails{
-			Status: http.StatusBadRequest,
-			Cause:  "UNSPECIFIED", // TODO: Check if this is the correct cause
+			Title:         "Malformed Request",
+			Status:        http.StatusBadRequest,
+			Cause:         "MALFORMED_REQUEST",
+			InvalidParams: util.BindErrorInvalidParamsMessages(err),
 		}
 
 		util.GinProblemJson(c, problemDetails)
@@ -174,7 +192,11 @@ func (s *Server) NSSAIAvailabilityPut(c *gin.Context) {
 		return
 	}
 
-	s.Processor().NssaiAvailabilityNfInstanceUpdate(c, nssaiAvailabilityInfo, nfId)
+	s.Processor().NssaiAvailabilityNfInstanceUpdate(c, nssaiAvailabilityInfo, params.NfId)
+}
+
+func (s *Server) NSSAIAvailabilitySubscriptionPatch(c *gin.Context) {
+	c.Status(http.StatusNotImplemented)
 }
 
 func (s *Server) NSSAIAvailabilityPost(c *gin.Context) {
@@ -209,6 +231,10 @@ func (s *Server) NSSAIAvailabilityPost(c *gin.Context) {
 	}
 
 	s.Processor().NssaiAvailabilitySubscriptionCreate(c, createData)
+}
+
+func (s *Server) NSSAIAvailabilityOptions(c *gin.Context) {
+	c.Status(http.StatusNotImplemented)
 }
 
 func (s *Server) NSSAIAvailabilityUnsubscribeDelete(c *gin.Context) {

@@ -26,7 +26,7 @@ const (
 	NssfSbiDefaultScheme       = "https"
 	NssfDefaultNrfUri          = "https://127.0.0.10:8000"
 	NssfNssaiavailResUriPrefix = "/nnssf-nssaiavailability/v1"
-	NssfNsselectResUriPrefix   = "/nnssf-nsselection/v1"
+	NssfNsselectResUriPrefix   = "/nnssf-nsselection/v2"
 )
 
 type Config struct {
@@ -168,7 +168,7 @@ type AmfConfig struct {
 type TaConfig struct {
 	Tai                  *models.Tai               `yaml:"tai"`
 	AccessType           *models.AccessType        `yaml:"accessType"`
-	SupportedSnssaiList  []models.Snssai           `yaml:"supportedSnssaiList"`
+	SupportedSnssaiList  []models.ExtSnssai        `yaml:"supportedSnssaiList"`
 	RestrictedSnssaiList []models.RestrictedSnssai `yaml:"restrictedSnssaiList,omitempty"`
 }
 

@@ -10,89 +10,53 @@
 package processor
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/free5gc/nssf/internal/logger"
-	"github.com/free5gc/nssf/internal/plugin"
 	"github.com/free5gc/nssf/internal/util"
 	"github.com/free5gc/openapi"
 	"github.com/free5gc/openapi/models"
 )
 
-// Parse NSSelectionGet query parameter
-func parseQueryParameter(query url.Values) (plugin.NsselectionQueryParameter, error) {
-	var (
-		param plugin.NsselectionQueryParameter
-		err   error
-	)
+type NetworkSliceInformationGetQuery struct {
+	// nolint: lll
+	NfType models.NrfNfManagementNfType `form:"nf-type" binding:"required,oneof=NRF UDM AMF SMF AUSF NEF PCF SMSF NSSF UDR LMF GMLC 5G_EIR SEPP UPF N3IWF AF UDSF BSF CHF NWDAF PCSCF CBCF HSS UCMF SOR_AF SPAF MME SCSAS SCEF SCP NSSAAF ICSCF SCSCF DRA IMS_AS AANF 5G_DDNMF NSACF MFAF EASDF DCCF MB_SMF TSCTSF ADRF GBA_BSF CEF MB_UPF NSWOF PKMF MNPF SMS_GMSC SMS_IWMSC MBSF MBSTF PANF IP_SM_GW SMS_ROUTER"`
 
-	if query.Get("nf-type") != "" {
-		param.NfType = new(models.NfType)
-		*param.NfType = models.NfType(query.Get("nf-type"))
-	}
+	NfId string `form:"nf-id" binding:"required,uuid"`
 
-	param.NfId = query.Get("nf-id")
+	// nolint: lll
+	SliceInfoRequestForRegistration *models.SliceInfoForRegistration `form:"slice-info-request-for-registration" binding:"omitempty"`
 
-	if query.Get("slice-info-request-for-registration") != "" {
-		param.SliceInfoRequestForRegistration = new(models.SliceInfoForRegistration)
-		err = json.NewDecoder(strings.NewReader(
-			query.Get("slice-info-request-for-registration"))).Decode(param.SliceInfoRequestForRegistration)
-		if err != nil {
-			return param, err
-		}
-	}
+	// nolint: lll
+	SliceInfoRequestForPduSession *models.SliceInfoForPduSession `form:"slice-info-request-for-pdu-session" binding:"omitempty"`
 
-	if query.Get("slice-info-request-for-pdu-session") != "" {
-		param.SliceInfoRequestForPduSession = new(models.SliceInfoForPduSession)
-		err = json.NewDecoder(strings.NewReader(
-			query.Get("slice-info-request-for-pdu-session"))).Decode(param.SliceInfoRequestForPduSession)
-		if err != nil {
-			return param, err
-		}
-	}
+	// nolint: lll
+	SliceInfoRequestForUeConfigurationUpdate *models.SliceInfoForUeConfigurationUpdate `form:"slice-info-request-for-ue-configuration-update" binding:"omitempty"`
 
-	if query.Get("home-plmn-id") != "" {
-		param.HomePlmnId = new(models.PlmnId)
-		err = json.NewDecoder(strings.NewReader(query.Get("home-plmn-id"))).Decode(param.HomePlmnId)
-		if err != nil {
-			return param, err
-		}
-	}
-
-	if query.Get("tai") != "" {
-		param.Tai = new(models.Tai)
-		err = json.NewDecoder(strings.NewReader(query.Get("tai"))).Decode(param.Tai)
-		if err != nil {
-			return param, err
-		}
-	}
-
-	if query.Get("supported-features") != "" {
-		param.SupportedFeatures = query.Get("supported-features")
-	}
-
-	return param, err
+	HomePlmnId        *models.PlmnId `form:"home-plmn-id" binding:"required_without=Tai,omitempty"`
+	Tai               *models.Tai    `form:"tai" binding:"required_without=HomePlmnId,omitempty"`
+	SupportedFeatures string         `form:"supported-features"`
 }
 
 // Check if the NF service consumer is authorized
 // TODO: Check if the NF service consumer is legal with local configuration, or possibly after querying NRF through
 // `nf-id` e.g. Whether the V-NSSF is authorized
-func checkNfServiceConsumer(nfType models.NfType) error {
-	if nfType != models.NfType_AMF && nfType != models.NfType_NSSF {
+func checkNfServiceConsumer(nfType models.NrfNfManagementNfType) error {
+	if nfType != models.NrfNfManagementNfType_AMF && nfType != models.NrfNfManagementNfType_NSSF {
 		return fmt.Errorf("`nf-type`:'%s' is not authorized to retrieve the slice selection information", string(nfType))
 	}
 
 	return nil
 }
 
-func (p *Processor) NSSelectionSliceInformationGet(c *gin.Context, query url.Values) {
+func (p *Processor) NSSelectionSliceInformationGet(
+	c *gin.Context,
+	param NetworkSliceInformationGetQuery,
+) {
 	var (
 		status         int
 		response       *models.AuthorizedNetworkSliceInfo
@@ -103,23 +67,9 @@ func (p *Processor) NSSelectionSliceInformationGet(c *gin.Context, query url.Val
 	//       if the consumer has sent too many requests in a configured amount of time
 	// TODO: Check URI length and response with ProblemDetails of 414 URI Too Long if URI is too long
 
-	// Parse query parameter
-	param, err := parseQueryParameter(query)
-	if err != nil {
-		// status = http.StatusBadRequest
-		problemDetails = &models.ProblemDetails{
-			Title:  util.MALFORMED_REQUEST,
-			Status: http.StatusBadRequest,
-			Detail: "[Query Parameter] " + err.Error(),
-		}
-		util.GinProblemJson(c, problemDetails)
-		return
-	}
-
 	// Check permission of NF service consumer
-	err = checkNfServiceConsumer(*param.NfType)
+	err := checkNfServiceConsumer(param.NfType)
 	if err != nil {
-		// status = http.StatusForbidden
 		problemDetails = &models.ProblemDetails{
 			Title:  util.UNAUTHORIZED_CONSUMER,
 			Status: http.StatusForbidden,
@@ -157,6 +107,8 @@ func (p *Processor) NSSelectionSliceInformationGet(c *gin.Context, query url.Val
 		status, response, problemDetails = nsselectionForPduSession(param)
 	}
 
+	// TODO: Handle `SliceInfoRequestForUeConfigurationUpdate`
+
 	if problemDetails != nil {
 		util.GinProblemJson(c, problemDetails)
 		return
@@ -175,7 +127,7 @@ func (p *Processor) NSSelectionSliceInformationGet(c *gin.Context, query url.Val
 
 // Set Allowed NSSAI with Subscribed S-NSSAI(s) which are marked as default S-NSSAI(s)
 func useDefaultSubscribedSnssai(
-	param plugin.NsselectionQueryParameter, authorizedNetworkSliceInfo *models.AuthorizedNetworkSliceInfo,
+	param NetworkSliceInformationGetQuery, authorizedNetworkSliceInfo *models.AuthorizedNetworkSliceInfo,
 ) {
 	var mappingOfSnssai []models.MappingOfSnssai
 	if param.HomePlmnId != nil {
@@ -243,7 +195,7 @@ func useDefaultSubscribedSnssai(
 
 // Set Configured NSSAI with S-NSSAI(s) in Requested NSSAI which are marked as Default Configured NSSAI
 func useDefaultConfiguredNssai(
-	param plugin.NsselectionQueryParameter, authorizedNetworkSliceInfo *models.AuthorizedNetworkSliceInfo,
+	param NetworkSliceInformationGetQuery, authorizedNetworkSliceInfo *models.AuthorizedNetworkSliceInfo,
 ) {
 	for _, requestedSnssai := range param.SliceInfoRequestForRegistration.RequestedNssai {
 		// Check whether the Default Configured S-NSSAI is standard, which could be commonly decided by all roaming partners
@@ -271,7 +223,7 @@ func useDefaultConfiguredNssai(
 
 // Set Configured NSSAI with Subscribed S-NSSAI(s)
 func setConfiguredNssai(
-	param plugin.NsselectionQueryParameter, authorizedNetworkSliceInfo *models.AuthorizedNetworkSliceInfo,
+	param NetworkSliceInformationGetQuery, authorizedNetworkSliceInfo *models.AuthorizedNetworkSliceInfo,
 ) {
 	var mappingOfSnssai []models.MappingOfSnssai
 	if param.HomePlmnId != nil {
@@ -319,7 +271,7 @@ func setConfiguredNssai(
 
 // Network slice selection for registration
 // The function is executed when the IE, `slice-info-request-for-registration`, is provided in query parameters
-func nsselectionForRegistration(param plugin.NsselectionQueryParameter) (
+func nsselectionForRegistration(param NetworkSliceInformationGetQuery) (
 	int, *models.AuthorizedNetworkSliceInfo, *models.ProblemDetails,
 ) {
 	authorizedNetworkSliceInfo := &models.AuthorizedNetworkSliceInfo{}
@@ -607,7 +559,7 @@ func selectNsiInformation(nsiInformationList []models.NsiInformation) models.Nsi
 
 // Network slice selection for PDU session
 // The function is executed when the IE, `slice-info-for-pdu-session`, is provided in query parameters
-func nsselectionForPduSession(param plugin.NsselectionQueryParameter) (
+func nsselectionForPduSession(param NetworkSliceInformationGetQuery) (
 	int, *models.AuthorizedNetworkSliceInfo, *models.ProblemDetails,
 ) {
 	var status int
