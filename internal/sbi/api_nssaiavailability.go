@@ -65,7 +65,8 @@ func (s *Server) getNssaiAvailabilityRoutes() []Route {
 		{
 			"NSSAIAvailabilityPatchSubscriptions",
 			http.MethodPatch,
-			"/nssai-availability/subscriptions/:subscriptionId",
+			// "/nssai-availability/subscriptions/:subscriptionId",
+			"/nssai-availability/:nfId/:subscriptionId",
 			s.NSSAIAvailabilitySubscriptionPatch,
 		},
 
@@ -196,6 +197,25 @@ func (s *Server) NSSAIAvailabilityPut(c *gin.Context) {
 }
 
 func (s *Server) NSSAIAvailabilitySubscriptionPatch(c *gin.Context) {
+	// Due to conflict of route matching, 'subscriptions' in the route is replaced with the existing wildcard ':nfId'
+	nfID := c.Param("nfId")
+	if nfID != "subscriptions" {
+		c.JSON(http.StatusNotFound, gin.H{})
+		logger.NssaiavailLog.Infof("404 Not Found")
+		return
+	}
+
+	subscriptionId := c.Params.ByName("subscriptionId")
+	if subscriptionId == "" {
+		problemDetails := &models.ProblemDetails{
+			Status: http.StatusBadRequest,
+			Cause:  "UNSPECIFIED", // TODO: Check if this is the correct cause
+		}
+
+		util.GinProblemJson(c, problemDetails)
+		return
+	}
+
 	c.Status(http.StatusNotImplemented)
 }
 
