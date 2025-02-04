@@ -44,14 +44,10 @@ func (s *Server) getNssaiAvailabilityRoutes() []Route {
 			s.NSSAIAvailabilityPut,
 		},
 
-		// Regular expressions for route matching should be unique in Gin package
-		// 'subscriptions' would conflict with existing wildcard ':nfId'
-		// Simply replace 'subscriptions' with ':nfId' and check if ':nfId' is 'subscriptions' in handler function
 		{
 			"NSSAIAvailabilityUnsubscribe",
 			http.MethodDelete,
-			// "/nssai-availability/subscriptions/:subscriptionId",
-			"/nssai-availability/:nfId/:subscriptionId",
+			"/nssai-availability/subscriptions/:subscriptionId",
 			s.NSSAIAvailabilityUnsubscribeDelete,
 		},
 
@@ -65,8 +61,7 @@ func (s *Server) getNssaiAvailabilityRoutes() []Route {
 		{
 			"NSSAIAvailabilityPatchSubscriptions",
 			http.MethodPatch,
-			// "/nssai-availability/subscriptions/:subscriptionId",
-			"/nssai-availability/:nfId/:subscriptionId",
+			"/nssai-availability/subscriptions/:subscriptionId",
 			s.NSSAIAvailabilitySubscriptionPatch,
 		},
 
@@ -197,25 +192,6 @@ func (s *Server) NSSAIAvailabilityPut(c *gin.Context) {
 }
 
 func (s *Server) NSSAIAvailabilitySubscriptionPatch(c *gin.Context) {
-	// Due to conflict of route matching, 'subscriptions' in the route is replaced with the existing wildcard ':nfId'
-	nfID := c.Param("nfId")
-	if nfID != "subscriptions" {
-		c.JSON(http.StatusNotFound, gin.H{})
-		logger.NssaiavailLog.Infof("404 Not Found")
-		return
-	}
-
-	subscriptionId := c.Params.ByName("subscriptionId")
-	if subscriptionId == "" {
-		problemDetails := &models.ProblemDetails{
-			Status: http.StatusBadRequest,
-			Cause:  "UNSPECIFIED", // TODO: Check if this is the correct cause
-		}
-
-		util.GinProblemJson(c, problemDetails)
-		return
-	}
-
 	c.Status(http.StatusNotImplemented)
 }
 
@@ -258,14 +234,6 @@ func (s *Server) NSSAIAvailabilityOptions(c *gin.Context) {
 }
 
 func (s *Server) NSSAIAvailabilityUnsubscribeDelete(c *gin.Context) {
-	// Due to conflict of route matching, 'subscriptions' in the route is replaced with the existing wildcard ':nfId'
-	nfID := c.Param("nfId")
-	if nfID != "subscriptions" {
-		c.JSON(http.StatusNotFound, gin.H{})
-		logger.NssaiavailLog.Infof("404 Not Found")
-		return
-	}
-
 	subscriptionId := c.Params.ByName("subscriptionId")
 	if subscriptionId == "" {
 		problemDetails := &models.ProblemDetails{
