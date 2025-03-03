@@ -9,34 +9,35 @@ package consumer
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
 	nssf_context "github.com/free5gc/nssf/internal/context"
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/openapi"
-	"github.com/free5gc/openapi/Nnrf_NFManagement"
 	"github.com/free5gc/openapi/models"
+	"github.com/free5gc/openapi/nrf/NFManagement"
 )
 
 type NrfService struct {
-	nrfNfMgmtClient *Nnrf_NFManagement.APIClient
+	nrfNfMgmtClient *NFManagement.APIClient
 	// NOTE: No mutex needed. One connection at a time.
 }
 
-func (ns *NrfService) buildNFProfile(context *nssf_context.NSSFContext) (profile models.NfProfile, err error) {
+func (ns *NrfService) buildNFProfile(context *nssf_context.NSSFContext) (
+	profile models.NrfNfManagementNfProfile, err error,
+) {
 	profile.NfInstanceId = context.NfId
-	profile.NfType = models.NfType_NSSF
-	profile.NfStatus = models.NfStatus_REGISTERED
-	profile.PlmnList = &context.SupportedPlmnList
+	profile.NfType = models.NrfNfManagementNfType_NSSF
+	profile.NfStatus = models.NrfNfManagementNfStatus_REGISTERED
+	profile.PlmnList = context.SupportedPlmnList
 	profile.Ipv4Addresses = []string{context.RegisterIPv4}
-	var services []models.NfService
+	var services []models.NrfNfManagementNfService
 	for _, nfService := range context.NfService {
 		services = append(services, nfService)
 	}
 	if len(services) > 0 {
-		profile.NfServices = &services
+		profile.NfServices = services
 	}
 	return
 }
@@ -51,8 +52,8 @@ func (ns *NrfService) SendRegisterNFInstance(ctx context.Context, nssfCtx *nssf_
 	}
 	apiClient := ns.nrfNfMgmtClient
 
-	var res *http.Response
-	var nf models.NfProfile
+	var res *NFManagement.RegisterNFInstanceResponse
+	var nf models.NrfNfManagementNfProfile
 	finish := false
 	for !finish {
 		select {
@@ -60,7 +61,12 @@ func (ns *NrfService) SendRegisterNFInstance(ctx context.Context, nssfCtx *nssf_
 			return "", "", fmt.Errorf("context done")
 
 		default:
-			nf, res, err = apiClient.NFInstanceIDDocumentApi.RegisterNFInstance(ctx, nfInstanceId, profile)
+			req := &NFManagement.RegisterNFInstanceRequest{
+				NfInstanceID:             &nfInstanceId,
+				NrfNfManagementNfProfile: &profile,
+			}
+
+			res, err = apiClient.NFInstanceIDDocumentApi.RegisterNFInstance(ctx, req)
 			if err != nil || res == nil {
 				// TODO : add log
 				logger.ConsumerLog.Errorf("NSSF register to NRF Error[%s]", err.Error())
@@ -68,71 +74,59 @@ func (ns *NrfService) SendRegisterNFInstance(ctx context.Context, nssfCtx *nssf_
 				time.Sleep(retryInterval)
 				continue
 			}
-			defer func() {
-				if resCloseErr := res.Body.Close(); resCloseErr != nil {
-					logger.ConsumerLog.Errorf("NFInstanceIDDocumentApi response body cannot close: %+v", resCloseErr)
-				}
-			}()
-			status := res.StatusCode
-			if status == http.StatusOK {
-				// NFUpdate
-				finish = true
-			} else if status == http.StatusCreated {
-				// NFRegister
-				resourceUri := res.Header.Get("Location")
-				resourceNrfUri, _, _ = strings.Cut(resourceUri, "/nnrf-nfm/")
-				retrieveNfInstanceId = resourceUri[strings.LastIndex(resourceUri, "/")+1:]
 
-				oauth2 := false
-				if nf.CustomInfo != nil {
-					v, ok := nf.CustomInfo["oauth2"].(bool)
-					if ok {
-						oauth2 = v
-						logger.MainLog.Infoln("OAuth2 setting receive from NRF:", oauth2)
-					}
+			resourceUri := res.Location
+			resourceNrfUri, _, _ = strings.Cut(resourceUri, "/nnrf-nfm/")
+			retrieveNfInstanceId = resourceUri[strings.LastIndex(resourceUri, "/")+1:]
+			nf = res.NrfNfManagementNfProfile
+
+			oauth2 := false
+			if nf.CustomInfo != nil {
+				v, ok := nf.CustomInfo["oauth2"].(bool)
+				if ok {
+					oauth2 = v
+					logger.MainLog.Infoln("OAuth2 setting receive from NRF:", oauth2)
 				}
-				nssf_context.GetSelf().OAuth2Required = oauth2
-				if oauth2 && nssf_context.GetSelf().NrfCertPem == "" {
-					logger.CfgLog.Error("OAuth2 enable but no nrfCertPem provided in config.")
-				}
-				finish = true
-			} else {
-				fmt.Println("NRF return wrong status code", status)
 			}
+			nssf_context.GetSelf().OAuth2Required = oauth2
+			if oauth2 && nssf_context.GetSelf().NrfCertPem == "" {
+				logger.CfgLog.Error("OAuth2 enable but no nrfCertPem provided in config.")
+			}
+			finish = true
 		}
 	}
 	return resourceNrfUri, retrieveNfInstanceId, err
 }
 
 func (ns *NrfService) SendDeregisterNFInstance(nfInstanceId string) (*models.ProblemDetails, error) {
-	logger.ConsumerLog.Infof("Send Deregister NFInstance")
+	logger.ConsumerLog.Infof("Send Deregister NFInstance [%s]", nfInstanceId)
 
 	var err error
 
-	ctx, pd, err := nssf_context.GetSelf().GetTokenCtx(models.ServiceName_NNRF_NFM, models.NfType_NRF)
+	ctx, pd, err := nssf_context.GetSelf().GetTokenCtx(models.ServiceName_NNRF_NFM, models.NrfNfManagementNfType_NRF)
 	if err != nil {
 		return pd, err
 	}
 
 	client := ns.nrfNfMgmtClient
 
-	var res *http.Response
+	req := &NFManagement.DeregisterNFInstanceRequest{
+		NfInstanceID: &nfInstanceId,
+	}
 
-	res, err = client.NFInstanceIDDocumentApi.DeregisterNFInstance(ctx, nfInstanceId)
-	if err == nil {
-		return nil, err
-	} else if res != nil {
-		defer func() {
-			if resCloseErr := res.Body.Close(); resCloseErr != nil {
-				logger.ConsumerLog.Errorf("NFInstanceIDDocumentApi response body cannot close: %+v", resCloseErr)
+	_, err = client.NFInstanceIDDocumentApi.DeregisterNFInstance(ctx, req)
+	if err != nil {
+		if apiErr, ok := err.(openapi.GenericOpenAPIError); ok {
+			// API error
+			if deregError, ok2 := apiErr.Model().(NFManagement.DeregisterNFInstanceError); ok2 {
+				return &deregError.ProblemDetails, err
 			}
-		}()
-		if res.Status != err.Error() {
 			return nil, err
 		}
-		problem := err.(openapi.GenericOpenAPIError).Model().(models.ProblemDetails)
-		return &problem, err
-	} else {
-		return nil, openapi.ReportError("server no response")
+
+		// Golang error
+		return nil, err
 	}
+
+	return nil, nil
 }

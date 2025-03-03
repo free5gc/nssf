@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/pkg/factory"
@@ -35,6 +36,15 @@ func Contain(target interface{}, slice interface{}) bool {
 			}
 		}
 	}
+	return false
+}
+
+func SnssaiEqualFold(s models.ExtSnssai, t models.Snssai) bool {
+	// TODO: Compare SdRanges and WildcardSd
+	if s.Sst == t.Sst && strings.EqualFold(s.Sd, t.Sd) {
+		return true
+	}
+
 	return false
 }
 
@@ -91,31 +101,55 @@ func CheckSupportedSnssaiInPlmn(snssai models.Snssai, plmnId models.PlmnId) bool
 }
 
 // Check whether S-NSSAIs in NSSAI are supported or not in PLMN
-func CheckSupportedNssaiInPlmn(nssai []models.Snssai, plmnId models.PlmnId) bool {
+func CheckSupportedNssaiInPlmn(nssai any, plmnId models.PlmnId) bool {
 	factory.NssfConfig.RLock()
 	defer factory.NssfConfig.RUnlock()
 	for _, supportedNssaiInPlmn := range factory.NssfConfig.Configuration.SupportedNssaiInPlmnList {
 		if *supportedNssaiInPlmn.PlmnId == plmnId {
-			for _, snssai := range nssai {
-				// Standard S-NSSAIs are supposed to be supported
-				// If not, disable following check and be sure to add supported standard S-NSSAI(s) in configuration
-				if CheckStandardSnssai(snssai) {
-					continue
-				}
+			if n, ok := nssai.([]models.ExtSnssai); ok {
+				for _, snssai := range n {
+					// Standard S-NSSAIs are supposed to be supported
+					// If not, disable following check and be sure to add supported standard S-NSSAI(s) in configuration
+					if CheckStandardSnssai(models.Snssai{Sst: snssai.Sst, Sd: snssai.Sd}) {
+						continue
+					}
 
-				hitSupportedNssai := false
-				for _, supportedSnssai := range supportedNssaiInPlmn.SupportedSnssaiList {
-					if openapi.SnssaiEqualFold(snssai, supportedSnssai) {
-						hitSupportedNssai = true
-						break
+					hitSupportedNssai := false
+					for _, supportedSnssai := range supportedNssaiInPlmn.SupportedSnssaiList {
+						if SnssaiEqualFold(snssai, supportedSnssai) {
+							hitSupportedNssai = true
+							break
+						}
+					}
+
+					if !hitSupportedNssai {
+						return false
 					}
 				}
+				return true
+			} else if n, ok := nssai.([]models.Snssai); ok {
+				for _, snssai := range n {
+					if CheckStandardSnssai(snssai) {
+						continue
+					}
 
-				if !hitSupportedNssai {
-					return false
+					hitSupportedNssai := false
+					for _, supportedSnssai := range supportedNssaiInPlmn.SupportedSnssaiList {
+						if openapi.SnssaiEqualFold(snssai, supportedSnssai) {
+							hitSupportedNssai = true
+							break
+						}
+					}
+
+					if !hitSupportedNssai {
+						return false
+					}
 				}
+				return true
+			} else {
+				logger.UtilLog.Warnf("Unsupported type of NSSAI: %+v", nssai)
+				return false
 			}
-			return true
 		}
 	}
 	logger.UtilLog.Warnf("No supported S-NSSAI list of PLMNID %+v in NSSF configuration", plmnId)
@@ -129,7 +163,7 @@ func CheckSupportedSnssaiInTa(snssai models.Snssai, tai models.Tai) bool {
 	for _, taConfig := range factory.NssfConfig.Configuration.TaList {
 		if reflect.DeepEqual(*taConfig.Tai, tai) {
 			for _, supportedSnssai := range taConfig.SupportedSnssaiList {
-				if openapi.SnssaiEqualFold(supportedSnssai, snssai) {
+				if SnssaiEqualFold(supportedSnssai, snssai) {
 					return true
 				}
 			}
@@ -203,9 +237,9 @@ func CheckStandardSnssai(snssai models.Snssai) bool {
 }
 
 // Check whether the NSSAI contains the specific S-NSSAI
-func CheckSnssaiInNssai(targetSnssai models.Snssai, nssai []models.Snssai) bool {
+func CheckSnssaiInNssai(targetSnssai models.Snssai, nssai []models.ExtSnssai) bool {
 	for _, snssai := range nssai {
-		if openapi.SnssaiEqualFold(snssai, targetSnssai) {
+		if SnssaiEqualFold(snssai, targetSnssai) {
 			return true
 		}
 	}
@@ -351,7 +385,7 @@ func AuthorizeOfTaListFromConfig(taiList []models.Tai) []models.AuthorizedNssaiA
 }
 
 // Get supported S-NSSAI list of the given NF ID and TAI from configuration
-func GetSupportedSnssaiListFromConfig(nfId string, tai models.Tai) []models.Snssai {
+func GetSupportedSnssaiListFromConfig(nfId string, tai models.Tai) []models.ExtSnssai {
 	for _, amfConfig := range factory.NssfConfig.Configuration.AmfList {
 		if amfConfig.NfId == nfId {
 			for _, supportedNssaiAvailabilityData := range amfConfig.SupportedNssaiAvailabilityData {
