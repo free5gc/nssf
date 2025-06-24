@@ -222,7 +222,7 @@ func (p *Processor) NssaiAvailabilityNfInstanceUpdate(
 				response.AuthorizedNssaiAvailabilityData,
 				authorizedNssaiAvailabilityData)
 		} else {
-			logger.NssaiavailLog.Warnf(err.Error())
+			logger.NssaiavailLog.Warnf("%s", err.Error())
 		}
 	}
 

@@ -57,7 +57,7 @@ func (p *Processor) NssaiAvailabilitySubscriptionCreate(
 	var subscription factory.Subscription
 	tempID, err := getUnusedSubscriptionID()
 	if err != nil {
-		logger.NssaiavailLog.Warnf(err.Error())
+		logger.NssaiavailLog.Warnf("%s", err.Error())
 
 		problemDetails = &models.ProblemDetails{
 			Title:  util.UNSUPPORTED_RESOURCE,
