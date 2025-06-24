@@ -12,6 +12,7 @@ import (
 	"runtime/debug"
 	"sync"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 
 	nssf_context "github.com/free5gc/nssf/internal/context"
@@ -21,18 +22,21 @@ import (
 	"github.com/free5gc/nssf/internal/sbi/processor"
 	"github.com/free5gc/nssf/pkg/app"
 	"github.com/free5gc/nssf/pkg/factory"
+	"github.com/free5gc/util/metrics"
+	"github.com/free5gc/util/metrics/utils"
 )
 
 type NssfApp struct {
 	cfg     *factory.Config
 	nssfCtx *nssf_context.NSSFContext
 
-	ctx       context.Context
-	cancel    context.CancelFunc
-	wg        sync.WaitGroup
-	sbiServer *sbi.Server
-	processor *processor.Processor
-	consumer  *consumer.Consumer
+	ctx           context.Context
+	cancel        context.CancelFunc
+	wg            sync.WaitGroup
+	sbiServer     *sbi.Server
+	metricsServer *metrics.Server
+	processor     *processor.Processor
+	consumer      *consumer.Consumer
 }
 
 var _ app.NssfApp = &NssfApp{}
@@ -60,7 +64,36 @@ func NewApp(ctx context.Context, cfg *factory.Config, tlsKeyLogPath string) (*Ns
 	sbiServer := sbi.NewServer(nssf, tlsKeyLogPath)
 	nssf.sbiServer = sbiServer
 
+	features := map[utils.MetricTypeEnabled]bool{}
+	customMetrics := make(map[utils.MetricTypeEnabled][]prometheus.Collector)
+	if cfg.AreMetricsEnabled() {
+		var err error
+		if nssf.metricsServer, err = metrics.NewServer(
+			getInitMetrics(cfg, features, customMetrics), tlsKeyLogPath, logger.InitLog); err != nil {
+			return nil, err
+		}
+	}
+
 	return nssf, nil
+}
+
+func getInitMetrics(
+	cfg *factory.Config,
+	features map[utils.MetricTypeEnabled]bool,
+	customMetrics map[utils.MetricTypeEnabled][]prometheus.Collector,
+) metrics.InitMetrics {
+	metricsInfo := metrics.Metrics{
+		BindingIPv4: cfg.GetMetricsBindingAddr(),
+		Scheme:      cfg.GetMetricsScheme(),
+		Namespace:   cfg.GetMetricsNamespace(),
+		Port:        cfg.GetMetricsPort(),
+		Tls: metrics.Tls{
+			Key: cfg.GetMetricsCertKeyPath(),
+			Pem: cfg.GetMetricsCertPemPath(),
+		},
+	}
+
+	return metrics.NewInitMetrics(metricsInfo, "NSSF", features, customMetrics)
 }
 
 func (a *NssfApp) Config() *factory.Config {
@@ -162,6 +195,12 @@ func (a *NssfApp) Start() {
 
 	a.sbiServer.Run(&a.wg)
 
+	if a.cfg.AreMetricsEnabled() && a.metricsServer != nil {
+		go func() {
+			a.metricsServer.Run(&a.wg)
+		}()
+	}
+
 	go a.listenShutdown(a.ctx)
 	a.Wait()
 }
@@ -179,6 +218,10 @@ func (a *NssfApp) terminateProcedure() {
 	logger.MainLog.Infof("Terminating NSSF...")
 	a.deregisterFromNrf()
 	a.sbiServer.Shutdown()
+	if a.metricsServer != nil {
+		a.metricsServer.Stop()
+		logger.MainLog.Infof("NSSF Metrics Server terminated")
+	}
 }
 
 func (a *NssfApp) Wait() {
