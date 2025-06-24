@@ -9,6 +9,7 @@ import (
 	"github.com/free5gc/nssf/internal/sbi/processor"
 	"github.com/free5gc/nssf/internal/util"
 	"github.com/free5gc/openapi/models"
+	"github.com/free5gc/util/metrics/sbi"
 )
 
 func (s *Server) getNsSelectionRoutes() []Route {
@@ -44,6 +45,7 @@ func (s *Server) NetworkSliceInformationGet(c *gin.Context) {
 			Instance:      "",
 			InvalidParams: util.BindErrorInvalidParamsMessages(err),
 		}
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetail.Title)
 		util.GinProblemJson(c, problemDetail)
 		return
 	}
