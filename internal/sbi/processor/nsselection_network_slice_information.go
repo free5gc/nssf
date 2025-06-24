@@ -20,6 +20,7 @@ import (
 	"github.com/free5gc/nssf/internal/util"
 	"github.com/free5gc/openapi"
 	"github.com/free5gc/openapi/models"
+	"github.com/free5gc/util/metrics/sbi"
 )
 
 type NetworkSliceInformationGetQuery struct {
@@ -75,6 +76,7 @@ func (p *Processor) NSSelectionSliceInformationGet(
 			Status: http.StatusForbidden,
 			Detail: err.Error(),
 		}
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Title)
 		util.GinProblemJson(c, problemDetails)
 		return
 	}
@@ -94,7 +96,7 @@ func (p *Processor) NSSelectionSliceInformationGet(
 				},
 			},
 		}
-
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
 		util.GinProblemJson(c, problemDetails)
 		return
 	}
@@ -110,11 +112,13 @@ func (p *Processor) NSSelectionSliceInformationGet(
 	// TODO: Handle `SliceInfoRequestForUeConfigurationUpdate`
 
 	if problemDetails != nil {
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
 		util.GinProblemJson(c, problemDetails)
 		return
 	}
 
 	if response == nil {
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, http.StatusText(http.StatusInternalServerError))
 		util.GinProblemJson(c, &models.ProblemDetails{
 			Title:  util.INTERNAL_ERROR,
 			Status: http.StatusInternalServerError,
