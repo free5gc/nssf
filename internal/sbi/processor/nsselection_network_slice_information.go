@@ -410,8 +410,7 @@ func nsselectionForRegistration(param NetworkSliceInformationGetQuery) (
 	}
 
 	checkInvalidRequestedNssai := false
-	if param.SliceInfoRequestForRegistration.RequestedNssai != nil &&
-		len(param.SliceInfoRequestForRegistration.RequestedNssai) != 0 {
+	if len(param.SliceInfoRequestForRegistration.RequestedNssai) != 0 {
 		// Requested NSSAI is provided
 		// Verify which S-NSSAI(s) in the Requested NSSAI are permitted based on comparing the Subscribed S-NSSAI(s)
 
