@@ -10,6 +10,7 @@ import (
 	"github.com/free5gc/nssf/internal/util"
 	"github.com/free5gc/openapi"
 	"github.com/free5gc/openapi/models"
+	"github.com/free5gc/util/metrics/sbi"
 )
 
 func (s *Server) getNssaiAvailabilityRoutes() []Route {
@@ -86,7 +87,7 @@ func (s *Server) NSSAIAvailabilityDelete(c *gin.Context) {
 			Status: http.StatusBadRequest,
 			Cause:  "UNSPECIFIED", // TODO: Check if this is the correct cause
 		}
-
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
 		util.GinProblemJson(c, problemDetails)
 		return
 	}
@@ -106,7 +107,7 @@ func (s *Server) NSSAIAvailabilityPatch(c *gin.Context) {
 			Status: http.StatusBadRequest,
 			Cause:  "UNSPECIFIED", // TODO: Check if this is the correct cause
 		}
-
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
 		util.GinProblemJson(c, problemDetails)
 		return
 	}
@@ -119,7 +120,7 @@ func (s *Server) NSSAIAvailabilityPatch(c *gin.Context) {
 			Status: http.StatusInternalServerError,
 			Cause:  "SYSTEM_FAILURE",
 		}
-
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
 		util.GinProblemJson(c, problemDetails)
 		return
 	}
@@ -131,6 +132,7 @@ func (s *Server) NSSAIAvailabilityPatch(c *gin.Context) {
 		}
 
 		logger.SBILog.Errorf("Error deserializing patch document: %+v", err)
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
 		util.GinProblemJson(c, problemDetails)
 		return
 	}
@@ -160,7 +162,7 @@ func (s *Server) NSSAIAvailabilityPut(c *gin.Context) {
 			Cause:         "MALFORMED_REQUEST",
 			InvalidParams: util.BindErrorInvalidParamsMessages(err),
 		}
-
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
 		util.GinProblemJson(c, problemDetails)
 		return
 	}
@@ -172,7 +174,7 @@ func (s *Server) NSSAIAvailabilityPut(c *gin.Context) {
 			Status: http.StatusInternalServerError,
 			Cause:  "SYSTEM_FAILURE",
 		}
-
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
 		util.GinProblemJson(c, problemDetails)
 		return
 	}
@@ -184,6 +186,7 @@ func (s *Server) NSSAIAvailabilityPut(c *gin.Context) {
 		}
 
 		logger.SBILog.Errorf("Error deserializing NSSAI availability info: %+v", err)
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
 		util.GinProblemJson(c, problemDetails)
 		return
 	}
@@ -207,7 +210,7 @@ func (s *Server) NSSAIAvailabilityPost(c *gin.Context) {
 			Cause:  "SYSTEM_FAILURE",
 		}
 		logger.NssaiavailLog.Errorf("Get Request Body error: %+v", err)
-
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetail.Cause)
 		util.GinProblemJson(c, problemDetail)
 		return
 	}
@@ -221,7 +224,7 @@ func (s *Server) NSSAIAvailabilityPost(c *gin.Context) {
 			Detail: problemDetail,
 		}
 		logger.NssaiavailLog.Errorln(problemDetail)
-
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, rsp.Title)
 		util.GinProblemJson(c, rsp)
 		return
 	}
@@ -240,7 +243,7 @@ func (s *Server) NSSAIAvailabilityUnsubscribeDelete(c *gin.Context) {
 			Status: http.StatusBadRequest,
 			Cause:  "UNSPECIFIED", // TODO: Check if this is the correct cause
 		}
-
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
 		util.GinProblemJson(c, problemDetails)
 		return
 	}

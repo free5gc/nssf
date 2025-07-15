@@ -19,6 +19,7 @@ import (
 	"github.com/free5gc/nssf/internal/util"
 	"github.com/free5gc/nssf/pkg/factory"
 	"github.com/free5gc/openapi/models"
+	"github.com/free5gc/util/metrics/sbi"
 )
 
 // Get available subscription ID from configuration
@@ -57,14 +58,14 @@ func (p *Processor) NssaiAvailabilitySubscriptionCreate(
 	var subscription factory.Subscription
 	tempID, err := getUnusedSubscriptionID()
 	if err != nil {
-		logger.NssaiavailLog.Warnf(err.Error())
+		logger.NssaiavailLog.Warnf("%s", err.Error())
 
 		problemDetails = &models.ProblemDetails{
 			Title:  util.UNSUPPORTED_RESOURCE,
 			Status: http.StatusNotFound,
 			Detail: err.Error(),
 		}
-
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Title)
 		util.GinProblemJson(c, problemDetails)
 		return
 	}
@@ -106,6 +107,6 @@ func (p *Processor) NssaiAvailabilitySubscriptionUnsubscribe(c *gin.Context, sub
 		Status: http.StatusNotFound,
 		Detail: fmt.Sprintf("Subscription ID '%s' is not available", subscriptionId),
 	}
-
+	c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Title)
 	util.GinProblemJson(c, problemDetails)
 }

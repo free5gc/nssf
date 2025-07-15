@@ -106,8 +106,8 @@ func CheckSupportedNssaiInPlmn(nssai any, plmnId models.PlmnId) bool {
 	defer factory.NssfConfig.RUnlock()
 	for _, supportedNssaiInPlmn := range factory.NssfConfig.Configuration.SupportedNssaiInPlmnList {
 		if *supportedNssaiInPlmn.PlmnId == plmnId {
-			if n, ok := nssai.([]models.ExtSnssai); ok {
-				for _, snssai := range n {
+			if nExtSnssai, okExtSnssai := nssai.([]models.ExtSnssai); okExtSnssai {
+				for _, snssai := range nExtSnssai {
 					// Standard S-NSSAIs are supposed to be supported
 					// If not, disable following check and be sure to add supported standard S-NSSAI(s) in configuration
 					if CheckStandardSnssai(models.Snssai{Sst: snssai.Sst, Sd: snssai.Sd}) {
@@ -293,7 +293,7 @@ func GetRestrictedSnssaiListFromConfig(tai models.Tai) []models.RestrictedSnssai
 	defer factory.NssfConfig.RUnlock()
 	for _, taConfig := range factory.NssfConfig.Configuration.TaList {
 		if reflect.DeepEqual(*taConfig.Tai, tai) {
-			if taConfig.RestrictedSnssaiList != nil && len(taConfig.RestrictedSnssaiList) != 0 {
+			if len(taConfig.RestrictedSnssaiList) != 0 {
 				return taConfig.RestrictedSnssaiList
 			} else {
 				return nil
@@ -454,7 +454,7 @@ func AddAllowedSnssai(allowedSnssai models.AllowedSnssai, accessType models.Acce
 func AddAmfInformation(tai models.Tai, authorizedNetworkSliceInfo *models.AuthorizedNetworkSliceInfo) {
 	factory.NssfConfig.RLock()
 	defer factory.NssfConfig.RUnlock()
-	if authorizedNetworkSliceInfo.AllowedNssaiList == nil || len(authorizedNetworkSliceInfo.AllowedNssaiList) == 0 {
+	if len(authorizedNetworkSliceInfo.AllowedNssaiList) == 0 {
 		return
 	}
 
@@ -485,7 +485,7 @@ func AddAmfInformation(tai models.Tai, authorizedNetworkSliceInfo *models.Author
 			continue
 		} else {
 			// Add AMF Set to Authorized Network Slice Info
-			if amfSetConfig.AmfList != nil && len(amfSetConfig.AmfList) != 0 {
+			if len(amfSetConfig.AmfList) != 0 {
 				// List of candidate AMF(s) provided in configuration
 				authorizedNetworkSliceInfo.CandidateAmfList = append(
 					authorizedNetworkSliceInfo.CandidateAmfList,
