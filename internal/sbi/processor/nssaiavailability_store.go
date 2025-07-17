@@ -49,7 +49,7 @@ func (p *Processor) NssaiAvailabilityNfInstancePatch(
 	nssaiAvailabilityUpdateInfo plugin.PatchDocument, nfId string,
 ) {
 	var (
-		response       *models.AuthorizedNssaiAvailabilityInfo = &models.AuthorizedNssaiAvailabilityInfo{}
+		response       = &models.AuthorizedNssaiAvailabilityInfo{}
 		problemDetails *models.ProblemDetails
 	)
 
@@ -163,7 +163,7 @@ func (p *Processor) NssaiAvailabilityNfInstanceUpdate(
 	nssaiAvailabilityInfo models.NssaiAvailabilityInfo, nfId string,
 ) {
 	var (
-		response       *models.AuthorizedNssaiAvailabilityInfo = &models.AuthorizedNssaiAvailabilityInfo{}
+		response       = &models.AuthorizedNssaiAvailabilityInfo{}
 		problemDetails *models.ProblemDetails
 	)
 
@@ -222,7 +222,7 @@ func (p *Processor) NssaiAvailabilityNfInstanceUpdate(
 				response.AuthorizedNssaiAvailabilityData,
 				authorizedNssaiAvailabilityData)
 		} else {
-			logger.NssaiavailLog.Warnf(err.Error())
+			logger.NssaiavailLog.Warn(err)
 		}
 	}
 

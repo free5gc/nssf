@@ -82,9 +82,9 @@ func (c *Configuration) validate() (bool, error) {
 	}
 
 	for index, serviceName := range c.ServiceNameList {
-		switch {
-		case serviceName == "nnssf-nsselection":
-		case serviceName == "nnssf-nssaiavailability":
+		switch serviceName {
+		case "nnssf-nsselection":
+		case "nnssf-nssaiavailability":
 		default:
 			err := errors.New("Invalid serviceNameList[" + strconv.Itoa(index) + "]: " +
 				string(serviceName) + ", should be nausf-auth.")
@@ -154,7 +154,7 @@ func appendInvalid(err error) error {
 
 	es := err.(govalidator.Errors).Errors()
 	for _, e := range es {
-		errs = append(errs, fmt.Errorf("Invalid %w", e))
+		errs = append(errs, fmt.Errorf("invalid %w", e))
 	}
 
 	return error(errs)
