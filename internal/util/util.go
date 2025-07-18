@@ -293,7 +293,7 @@ func GetRestrictedSnssaiListFromConfig(tai models.Tai) []models.RestrictedSnssai
 	defer factory.NssfConfig.RUnlock()
 	for _, taConfig := range factory.NssfConfig.Configuration.TaList {
 		if reflect.DeepEqual(*taConfig.Tai, tai) {
-			if taConfig.RestrictedSnssaiList != nil && len(taConfig.RestrictedSnssaiList) != 0 {
+			if len(taConfig.RestrictedSnssaiList) != 0 {
 				return taConfig.RestrictedSnssaiList
 			} else {
 				return nil
@@ -329,11 +329,11 @@ func AuthorizeOfAmfTaFromConfig(nfId string, tai models.Tai) (models.AuthorizedN
 			if err1 != nil {
 				logger.UtilLog.Errorf("Marshal error in AuthorizeOfAmfTaFromConfig: %+v", err1)
 			}
-			err := fmt.Errorf("No supported S-NSSAI list by AMF %s under TAI %s in NSSF configuration", nfId, e)
+			err := fmt.Errorf("no supported S-NSSAI list by AMF %s under TAI %s in NSSF configuration", nfId, e)
 			return authorizedNssaiAvailabilityData, err
 		}
 	}
-	err := fmt.Errorf("No AMF configuration of %s", nfId)
+	err := fmt.Errorf("no AMF configuration of %s", nfId)
 	return authorizedNssaiAvailabilityData, err
 }
 
@@ -360,7 +360,7 @@ func AuthorizeOfAmfFromConfig(nfId string) ([]models.AuthorizedNssaiAvailability
 			return authorizedNssaiAvailabilityDataList, nil
 		}
 	}
-	err := fmt.Errorf("No AMF configuration of %s", nfId)
+	err := fmt.Errorf("no AMF configuration of %s", nfId)
 	return authorizedNssaiAvailabilityDataList, err
 }
 
@@ -454,7 +454,7 @@ func AddAllowedSnssai(allowedSnssai models.AllowedSnssai, accessType models.Acce
 func AddAmfInformation(tai models.Tai, authorizedNetworkSliceInfo *models.AuthorizedNetworkSliceInfo) {
 	factory.NssfConfig.RLock()
 	defer factory.NssfConfig.RUnlock()
-	if authorizedNetworkSliceInfo.AllowedNssaiList == nil || len(authorizedNetworkSliceInfo.AllowedNssaiList) == 0 {
+	if len(authorizedNetworkSliceInfo.AllowedNssaiList) == 0 {
 		return
 	}
 
@@ -485,7 +485,7 @@ func AddAmfInformation(tai models.Tai, authorizedNetworkSliceInfo *models.Author
 			continue
 		} else {
 			// Add AMF Set to Authorized Network Slice Info
-			if amfSetConfig.AmfList != nil && len(amfSetConfig.AmfList) != 0 {
+			if len(amfSetConfig.AmfList) != 0 {
 				// List of candidate AMF(s) provided in configuration
 				authorizedNetworkSliceInfo.CandidateAmfList = append(
 					authorizedNetworkSliceInfo.CandidateAmfList,
