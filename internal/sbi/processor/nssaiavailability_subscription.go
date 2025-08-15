@@ -77,7 +77,7 @@ func (p *Processor) NssaiAvailabilitySubscriptionCreate(
 	factory.NssfConfig.Subscriptions = append(factory.NssfConfig.Subscriptions, subscription)
 
 	response.SubscriptionId = subscription.SubscriptionId
-	if !subscription.SubscriptionData.Expiry.IsZero() {
+	if subscription.SubscriptionData.Expiry != nil && !subscription.SubscriptionData.Expiry.IsZero() {
 		response.Expiry = new(time.Time)
 		*response.Expiry = *subscription.SubscriptionData.Expiry
 	}
