@@ -12,26 +12,28 @@ import (
 	"sync"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/google/uuid"
 
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/openapi/models"
 )
 
 const (
-	NssfDefaultTLSKeyLogPath    = "./log/nssfsslkey.log"
-	NssfDefaultCertPemPath      = "./cert/nssf.pem"
-	NssfDefaultPrivateKeyPath   = "./cert/nssf.key"
-	NssfDefaultConfigPath       = "./config/nssfcfg.yaml"
-	NssfSbiDefaultIPv4          = "127.0.0.31"
-	NssfSbiDefaultPort          = 8000
-	NssfSbiDefaultScheme        = "https"
-	NssfDefaultNrfUri           = "https://127.0.0.10:8000"
-	NssfMetricsDefaultEnabled   = false
-	NssfMetricsDefaultPort      = 9091
-	NssfMetricsDefaultScheme    = "https"
-	NssfMetricsDefaultNamespace = "free5gc"
-	NssfNssaiavailResUriPrefix  = "/nnssf-nssaiavailability/v1"
-	NssfNsselectResUriPrefix    = "/nnssf-nsselection/v2"
+	NssfDefaultTLSKeyLogPath      = "./log/nssfsslkey.log"
+	NssfDefaultCertPemPath        = "./cert/nssf.pem"
+	NssfDefaultPrivateKeyPath     = "./cert/nssf.key"
+	NssfDefaultConfigPath         = "./config/nssfcfg.yaml"
+	NssfDefaultNfInstanceIdEnvVar = "NSSF_NF_INSTANCE_ID"
+	NssfSbiDefaultIPv4            = "127.0.0.31"
+	NssfSbiDefaultPort            = 8000
+	NssfSbiDefaultScheme          = "https"
+	NssfDefaultNrfUri             = "https://127.0.0.10:8000"
+	NssfMetricsDefaultEnabled     = false
+	NssfMetricsDefaultPort        = 9091
+	NssfMetricsDefaultScheme      = "https"
+	NssfMetricsDefaultNamespace   = "free5gc"
+	NssfNssaiavailResUriPrefix    = "/nnssf-nssaiavailability/v1"
+	NssfNsselectResUriPrefix      = "/nnssf-nsselection/v2"
 )
 
 type Config struct {
@@ -63,6 +65,7 @@ type Info struct {
 
 type Configuration struct {
 	NssfName                 string                  `yaml:"nssfName,omitempty"`
+	NfInstanceId             string                  `yaml:"nfInstanceId,omitempty" valid:"optional,uuidv4"`
 	Sbi                      *Sbi                    `yaml:"sbi"`
 	Metrics                  *Metrics                `yaml:"metrics,omitempty" valid:"optional"`
 	ServiceNameList          []models.ServiceName    `yaml:"serviceNameList"`
@@ -84,6 +87,10 @@ type Logger struct {
 }
 
 func (c *Configuration) validate() (bool, error) {
+	if c.NfInstanceId == "" {
+		c.NfInstanceId = uuid.New().String()
+	}
+
 	if sbi := c.Sbi; sbi != nil {
 		if result, err := sbi.validate(); err != nil {
 			return result, err
@@ -131,6 +138,31 @@ func (c *Configuration) validate() (bool, error) {
 
 	result, err := govalidator.ValidateStruct(c)
 	return result, appendInvalid(err)
+}
+
+func (c *Config) GetNfInstanceId() string {
+	c.RLock()
+	defer c.RUnlock()
+
+	var nfInstanceId string
+
+	logger.CfgLog.Debugf("Fetching nfInstanceId from env var \"%s\"", NssfDefaultNfInstanceIdEnvVar)
+
+	if nfInstanceId = os.Getenv(NssfDefaultNfInstanceIdEnvVar); nfInstanceId == "" {
+		logger.CfgLog.Debugf("No value found for \"%s\" env, fallback on config nfInstanceId : %s",
+			NssfDefaultNfInstanceIdEnvVar, c.Configuration.NfInstanceId)
+		return c.Configuration.NfInstanceId
+	}
+
+	if err := uuid.Validate(nfInstanceId); err != nil {
+		logger.CfgLog.Errorf("Env var \"%s\" is not a valid uuid, "+
+			"fallback on configuration nfInstanceId : %s", NssfDefaultNfInstanceIdEnvVar, c.Configuration.NfInstanceId)
+		return c.Configuration.NfInstanceId
+	}
+
+	logger.CfgLog.Debugf("nfInstanceId from %s : %s", NssfDefaultNfInstanceIdEnvVar, nfInstanceId)
+
+	return nfInstanceId
 }
 
 type Sbi struct {
