@@ -73,7 +73,7 @@ func InitNssfContext() {
 		nssfContext.Name = nssfConfig.Configuration.NssfName
 	}
 
-	nssfContext.NfId = uuid.New().String()
+	nssfContext.NfId = nssfConfig.GetNfInstanceId()
 	nssfContext.Name = "NSSF"
 	nssfContext.UriScheme = nssfConfig.Configuration.Sbi.Scheme
 	nssfContext.RegisterIPv4 = nssfConfig.Configuration.Sbi.RegisterIPv4
