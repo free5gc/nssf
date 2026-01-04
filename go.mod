@@ -1,12 +1,12 @@
 module github.com/free5gc/nssf
 
-go 1.24.0
+go 1.25.5
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 	github.com/evanphx/json-patch v0.5.2
-	github.com/free5gc/openapi v1.2.2
-	github.com/free5gc/util v1.2.0
+	github.com/free5gc/openapi v1.2.3
+	github.com/free5gc/util v1.3.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-playground/validator/v10 v10.20.0
 	github.com/google/uuid v1.6.0
@@ -27,9 +27,9 @@ require (
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/free5gc/aper v1.0.6-0.20250102035630-3ddc831eed6a // indirect
-	github.com/free5gc/nas v1.2.1 // indirect
-	github.com/free5gc/ngap v1.1.1 // indirect
+	github.com/free5gc/aper v1.1.0 // indirect
+	github.com/free5gc/nas v1.2.2 // indirect
+	github.com/free5gc/ngap v1.1.2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
