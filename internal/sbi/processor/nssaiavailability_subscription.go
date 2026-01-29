@@ -22,27 +22,35 @@ import (
 	"github.com/free5gc/util/metrics/sbi"
 )
 
-// Get available subscription ID from configuration
+// Create a new subscription with an unused ID and add it to configuration
 // In this implementation, string converted from 32-bit integer is used as subscription ID
-func getUnusedSubscriptionID() (string, error) {
+func createSubscription(createData models.NssfEventSubscriptionCreateData) (factory.Subscription, error) {
+	var subscription factory.Subscription
 	var idx uint32 = 1
-	factory.NssfConfig.RLock()
-	defer factory.NssfConfig.RUnlock()
-	for _, subscription := range factory.NssfConfig.Subscriptions {
-		tempID, err := strconv.Atoi(subscription.SubscriptionId)
+	factory.NssfConfig.Lock()
+	defer factory.NssfConfig.Unlock()
+	for _, sub := range factory.NssfConfig.Subscriptions {
+		tempID, err := strconv.Atoi(sub.SubscriptionId)
 		if err != nil {
-			return "", err
+			return subscription, err
 		}
 		if uint32(tempID) == idx {
 			if idx == math.MaxUint32 {
-				return "", fmt.Errorf("no available subscription ID")
+				return subscription, fmt.Errorf("no available subscription ID")
 			}
 			idx++
 		} else {
 			break
 		}
 	}
-	return strconv.Itoa(int(idx)), nil
+
+	subscription.SubscriptionId = strconv.Itoa(int(idx))
+	subscription.SubscriptionData = new(models.NssfEventSubscriptionCreateData)
+	*subscription.SubscriptionData = createData
+
+	factory.NssfConfig.Subscriptions = append(factory.NssfConfig.Subscriptions, subscription)
+
+	return subscription, nil
 }
 
 // NSSAIAvailability subscription POST method
@@ -55,8 +63,7 @@ func (p *Processor) NssaiAvailabilitySubscriptionCreate(
 		problemDetails *models.ProblemDetails
 	)
 
-	var subscription factory.Subscription
-	tempID, err := getUnusedSubscriptionID()
+	subscription, err := createSubscription(createData)
 	if err != nil {
 		logger.NssaiavailLog.Warn(err)
 
@@ -69,12 +76,6 @@ func (p *Processor) NssaiAvailabilitySubscriptionCreate(
 		util.GinProblemJson(c, problemDetails)
 		return
 	}
-
-	subscription.SubscriptionId = tempID
-	subscription.SubscriptionData = new(models.NssfEventSubscriptionCreateData)
-	*subscription.SubscriptionData = createData
-
-	factory.NssfConfig.Subscriptions = append(factory.NssfConfig.Subscriptions, subscription)
 
 	response.SubscriptionId = subscription.SubscriptionId
 	if subscription.SubscriptionData.Expiry != nil && !subscription.SubscriptionData.Expiry.IsZero() {
