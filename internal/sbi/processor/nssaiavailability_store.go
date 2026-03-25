@@ -174,6 +174,17 @@ func (p *Processor) NssaiAvailabilityNfInstanceUpdate(
 	)
 
 	for _, s := range nssaiAvailabilityInfo.SupportedNssaiAvailabilityData {
+		if s.Tai == nil || s.Tai.PlmnId == nil {
+			problemDetails = &models.ProblemDetails{
+				Title:  util.MANDATORY_IE_MISSING,
+				Status: http.StatusBadRequest,
+				Detail: "tai or tai.plmnId is missing in supportedNssaiAvailabilityData",
+			}
+			c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Title)
+			util.GinProblemJson(c, problemDetails)
+			return
+		}
+
 		if !util.CheckSupportedNssaiInPlmn(s.SupportedSnssaiList, *s.Tai.PlmnId) {
 			problemDetails = &models.ProblemDetails{
 				Title:  util.UNSUPPORTED_RESOURCE,
