@@ -104,9 +104,24 @@ func (p *Processor) NSSelectionSliceInformationGet(
 	if param.SliceInfoRequestForRegistration != nil {
 		// Network slice information is requested during the Registration procedure
 		status, response, problemDetails = nsselectionForRegistration(param)
-	} else {
+	} else if param.SliceInfoRequestForPduSession != nil {
 		// Network slice information is requested during the PDU session establishment procedure
 		status, response, problemDetails = nsselectionForPduSession(param)
+	} else {
+		problemDetails = &models.ProblemDetails{
+			Title:  util.MANDATORY_IE_MISSING,
+			Status: http.StatusBadRequest,
+			Cause:  "MANDATORY_IE_MISSING",
+			Detail: "Either `slice-info-request-for-registration` or `slice-info-request-for-pdu-session` should be provided",
+			InvalidParams: []models.InvalidParam{
+				{
+					Param: "slice-info-request-for-registration",
+				},
+				{
+					Param: "slice-info-request-for-pdu-session",
+				},
+			},
+		}
 	}
 
 	// TODO: Handle `SliceInfoRequestForUeConfigurationUpdate`
@@ -567,6 +582,23 @@ func nsselectionForPduSession(param NetworkSliceInformationGetQuery) (
 ) {
 	var status int
 	authorizedNetworkSliceInfo := &models.AuthorizedNetworkSliceInfo{}
+
+	if param.SliceInfoRequestForPduSession.SNssai == nil {
+		problemDetails := &models.ProblemDetails{
+			Title:  util.MANDATORY_IE_MISSING,
+			Status: http.StatusBadRequest,
+			Cause:  "MANDATORY_IE_MISSING",
+			Detail: "[Query Parameter] `slice-info-request-for-pdu-session.s-nssai` is required",
+			InvalidParams: []models.InvalidParam{
+				{
+					Param: "slice-info-request-for-pdu-session.s-nssai",
+				},
+			},
+		}
+
+		status = http.StatusBadRequest
+		return status, nil, problemDetails
+	}
 
 	if param.HomePlmnId != nil {
 		// Check whether UE's Home PLMN is supported when UE is a roamer
