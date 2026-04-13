@@ -294,7 +294,6 @@ func nsselectionForRegistration(param NetworkSliceInformationGetQuery) (
 	int, *models.AuthorizedNetworkSliceInfo, *models.ProblemDetails,
 ) {
 	authorizedNetworkSliceInfo := &models.AuthorizedNetworkSliceInfo{}
-
 	var status int
 	if param.HomePlmnId != nil {
 		// Check whether UE's Home PLMN is supported when UE is a roamer
@@ -317,6 +316,48 @@ func nsselectionForRegistration(param NetworkSliceInformationGetQuery) (
 
 			status = http.StatusOK
 			return status, authorizedNetworkSliceInfo, nil
+		}
+	}
+
+	if param.SliceInfoRequestForRegistration.SubscribedNssai != nil {
+		for idx, subscribedSnssai := range param.SliceInfoRequestForRegistration.SubscribedNssai {
+			if subscribedSnssai.SubscribedSnssai != nil {
+				continue
+			}
+
+			paramPath := fmt.Sprintf("slice-info-request-for-registration.subscribedNssai[%d].subscribedSnssai", idx)
+			detail := fmt.Sprintf("[Query Parameter] `%s` is required", paramPath)
+			problemDetails := &models.ProblemDetails{
+				Title:  util.INVALID_REQUEST,
+				Status: http.StatusBadRequest,
+				Detail: detail,
+				InvalidParams: []models.InvalidParam{
+					{
+						Param:  paramPath,
+						Reason: detail,
+					},
+				},
+			}
+
+			status = http.StatusBadRequest
+			return status, nil, problemDetails
+		}
+	}
+
+	if param.SliceInfoRequestForRegistration.MappingOfNssai != nil {
+		// check if servingSnssai  and homeSnssai are provided in each MappingOfSnssai element
+		for _, mappingOfSnssai := range param.SliceInfoRequestForRegistration.MappingOfNssai {
+			if mappingOfSnssai.ServingSnssai == nil || mappingOfSnssai.HomeSnssai == nil {
+				detail := "Each element in `mappingOfNssai` should include both `serving-snssai` and `home-snssai`"
+				problemDetails := &models.ProblemDetails{
+					Title:  util.INVALID_REQUEST,
+					Status: http.StatusBadRequest,
+					Detail: detail,
+				}
+
+				status = http.StatusBadRequest
+				return status, nil, problemDetails
+			}
 		}
 	}
 
