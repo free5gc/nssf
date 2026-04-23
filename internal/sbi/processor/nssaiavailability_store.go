@@ -24,6 +24,37 @@ import (
 	"github.com/free5gc/util/metrics/sbi"
 )
 
+func validateSupportedNssaiAvailabilityDataList(
+	c *gin.Context, supportedNssaiAvailabilityData []models.SupportedNssaiAvailabilityData,
+) bool {
+	for _, s := range supportedNssaiAvailabilityData {
+		if s.Tai == nil || s.Tai.PlmnId == nil {
+			problemDetails := &models.ProblemDetails{
+				Title:  util.MANDATORY_IE_MISSING,
+				Status: http.StatusBadRequest,
+				Detail: "tai or tai.plmnId is missing in supportedNssaiAvailabilityData",
+			}
+			c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Title)
+			util.GinProblemJson(c, problemDetails)
+			return false
+		}
+
+		if !util.CheckSupportedNssaiInPlmn(s.SupportedSnssaiList, *s.Tai.PlmnId) {
+			problemDetails := &models.ProblemDetails{
+				Title:  util.UNSUPPORTED_RESOURCE,
+				Status: http.StatusForbidden,
+				Detail: "S-NSSAI in Requested NSSAI is not supported in PLMN",
+				Cause:  "SNSSAI_NOT_SUPPORTED",
+			}
+			c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
+			util.GinProblemJson(c, problemDetails)
+			return false
+		}
+	}
+
+	return true
+}
+
 func (p *Processor) NssaiAvailabilityNfInstanceDelete(c *gin.Context, nfId string) {
 	var problemDetails *models.ProblemDetails
 	for i, amfConfig := range factory.NssfConfig.Configuration.AmfList {
@@ -51,13 +82,11 @@ func (p *Processor) NssaiAvailabilityNfInstancePatch(
 	nssaiAvailabilityUpdateInfo plugin.PatchDocument, nfId string,
 ) {
 	var (
-		response       = &models.AuthorizedNssaiAvailabilityInfo{}
-		problemDetails *models.ProblemDetails
+		response = &models.AuthorizedNssaiAvailabilityInfo{}
+		amfIdx   int
+		original []byte
+		hitAmf   bool
 	)
-
-	var amfIdx int
-	var original []byte
-	hitAmf := false
 	factory.NssfConfig.RLock()
 	for amfIdx, amfConfig := range factory.NssfConfig.Configuration.AmfList {
 		if amfConfig.NfId == nfId {
@@ -87,7 +116,7 @@ func (p *Processor) NssaiAvailabilityNfInstancePatch(
 	}
 	factory.NssfConfig.RUnlock()
 	if !hitAmf {
-		problemDetails = &models.ProblemDetails{
+		problemDetails := &models.ProblemDetails{
 			Title:  util.UNSUPPORTED_RESOURCE,
 			Status: http.StatusNotFound,
 			Detail: fmt.Sprintf("AMF ID '%s' does not exist", nfId),
@@ -116,7 +145,7 @@ func (p *Processor) NssaiAvailabilityNfInstancePatch(
 
 	patch, err := jsonpatch.DecodePatch(patchJSON)
 	if err != nil {
-		problemDetails = &models.ProblemDetails{
+		problemDetails := &models.ProblemDetails{
 			Title:  util.MALFORMED_REQUEST,
 			Status: http.StatusBadRequest,
 			Detail: err.Error(),
@@ -128,7 +157,7 @@ func (p *Processor) NssaiAvailabilityNfInstancePatch(
 
 	modified, err := patch.Apply(original)
 	if err != nil {
-		problemDetails = &models.ProblemDetails{
+		problemDetails := &models.ProblemDetails{
 			Title:  util.INVALID_REQUEST,
 			Status: http.StatusConflict,
 			Detail: err.Error(),
@@ -138,11 +167,10 @@ func (p *Processor) NssaiAvailabilityNfInstancePatch(
 		return
 	}
 
-	factory.NssfConfig.Lock()
-	err = json.Unmarshal(modified, &factory.NssfConfig.Configuration.AmfList[amfIdx].SupportedNssaiAvailabilityData)
-	factory.NssfConfig.Unlock()
+	var updatedSupportedNssaiAvailabilityData []models.SupportedNssaiAvailabilityData
+	err = json.Unmarshal(modified, &updatedSupportedNssaiAvailabilityData)
 	if err != nil {
-		problemDetails = &models.ProblemDetails{
+		problemDetails := &models.ProblemDetails{
 			Title:  util.INVALID_REQUEST,
 			Status: http.StatusBadRequest,
 			Detail: err.Error(),
@@ -151,6 +179,14 @@ func (p *Processor) NssaiAvailabilityNfInstancePatch(
 		util.GinProblemJson(c, problemDetails)
 		return
 	}
+
+	if !validateSupportedNssaiAvailabilityDataList(c, updatedSupportedNssaiAvailabilityData) {
+		return
+	}
+
+	factory.NssfConfig.Lock()
+	factory.NssfConfig.Configuration.AmfList[amfIdx].SupportedNssaiAvailabilityData = updatedSupportedNssaiAvailabilityData
+	factory.NssfConfig.Unlock()
 
 	// Return all authorized NSSAI availability information
 	response.AuthorizedNssaiAvailabilityData, err = util.AuthorizeOfAmfFromConfig(nfId)
@@ -169,39 +205,17 @@ func (p *Processor) NssaiAvailabilityNfInstanceUpdate(
 	nssaiAvailabilityInfo models.NssaiAvailabilityInfo, nfId string,
 ) {
 	var (
-		response       = &models.AuthorizedNssaiAvailabilityInfo{}
-		problemDetails *models.ProblemDetails
+		response = &models.AuthorizedNssaiAvailabilityInfo{}
+		hitAmf   bool
 	)
 
-	for _, s := range nssaiAvailabilityInfo.SupportedNssaiAvailabilityData {
-		if s.Tai == nil || s.Tai.PlmnId == nil {
-			problemDetails = &models.ProblemDetails{
-				Title:  util.MANDATORY_IE_MISSING,
-				Status: http.StatusBadRequest,
-				Detail: "tai or tai.plmnId is missing in supportedNssaiAvailabilityData",
-			}
-			c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Title)
-			util.GinProblemJson(c, problemDetails)
-			return
-		}
-
-		if !util.CheckSupportedNssaiInPlmn(s.SupportedSnssaiList, *s.Tai.PlmnId) {
-			problemDetails = &models.ProblemDetails{
-				Title:  util.UNSUPPORTED_RESOURCE,
-				Status: http.StatusForbidden,
-				Detail: "S-NSSAI in Requested NSSAI is not supported in PLMN",
-				Cause:  "SNSSAI_NOT_SUPPORTED",
-			}
-			c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
-			util.GinProblemJson(c, problemDetails)
-			return
-		}
+	if !validateSupportedNssaiAvailabilityDataList(c, nssaiAvailabilityInfo.SupportedNssaiAvailabilityData) {
+		return
 	}
 
 	// TODO: Currently authorize all the provided S-NSSAIs
 	//       Take some issue into consideration e.g. operator policies
 
-	hitAmf := false
 	// Find AMF configuration of given NfId
 	// If found, then update the SupportedNssaiAvailabilityData
 	factory.NssfConfig.Lock()
