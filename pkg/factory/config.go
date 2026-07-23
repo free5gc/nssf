@@ -117,7 +117,7 @@ func (c *Configuration) validate() (bool, error) {
 		case "nnssf-nssaiavailability":
 		default:
 			err := errors.New("Invalid serviceNameList[" + strconv.Itoa(index) + "]: " +
-				string(serviceName) + ", should be nausf-auth.")
+				string(serviceName) + ", should be nnssf-nsselection or nnssf-nssaiavailability.")
 			return false, err
 		}
 	}
