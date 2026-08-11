@@ -64,20 +64,20 @@ type Info struct {
 }
 
 type Configuration struct {
-	NssfName                 string                  `yaml:"nssfName,omitempty"`
-	NfInstanceId             string                  `yaml:"nfInstanceId,omitempty" valid:"optional,uuidv4"`
-	Sbi                      *Sbi                    `yaml:"sbi"`
-	Metrics                  *Metrics                `yaml:"metrics,omitempty" valid:"optional"`
-	ServiceNameList          []models.ServiceName    `yaml:"serviceNameList"`
-	NrfUri                   string                  `yaml:"nrfUri"`
-	NrfCertPem               string                  `yaml:"nrfCertPem,omitempty" valid:"optional"`
-	SupportedPlmnList        []models.PlmnId         `yaml:"supportedPlmnList,omitempty"`
-	SupportedNssaiInPlmnList []SupportedNssaiInPlmn  `yaml:"supportedNssaiInPlmnList"`
-	NsiList                  []NsiConfig             `yaml:"nsiList,omitempty"`
-	AmfSetList               []AmfSetConfig          `yaml:"amfSetList"`
-	AmfList                  []AmfConfig             `yaml:"amfList"`
-	TaList                   []TaConfig              `yaml:"taList"`
-	MappingListFromPlmn      []MappingFromPlmnConfig `yaml:"mappingListFromPlmn"`
+	NssfName                 string                          `yaml:"nssfName,omitempty"`
+	NfInstanceId             string                          `yaml:"nfInstanceId,omitempty" valid:"optional,uuidv4"`
+	Sbi                      *Sbi                            `yaml:"sbi"`
+	Metrics                  *Metrics                        `yaml:"metrics,omitempty" valid:"optional"`
+	ServiceNameList          []models.Nrf_NFMgmt_ServiceName `yaml:"serviceNameList"`
+	NrfUri                   string                          `yaml:"nrfUri"`
+	NrfCertPem               string                          `yaml:"nrfCertPem,omitempty" valid:"optional"`
+	SupportedPlmnList        []models.PlmnId                 `yaml:"supportedPlmnList,omitempty"`
+	SupportedNssaiInPlmnList []SupportedNssaiInPlmn          `yaml:"supportedNssaiInPlmnList"`
+	NsiList                  []NsiConfig                     `yaml:"nsiList,omitempty"`
+	AmfSetList               []AmfSetConfig                  `yaml:"amfSetList"`
+	AmfList                  []AmfConfig                     `yaml:"amfList"`
+	TaList                   []TaConfig                      `yaml:"taList"`
+	MappingListFromPlmn      []MappingFromPlmnConfig         `yaml:"mappingListFromPlmn"`
 }
 
 type Logger struct {
@@ -242,15 +242,15 @@ func appendInvalid(err error) error {
 }
 
 type AmfConfig struct {
-	NfId                           string                                  `yaml:"nfId"`
-	SupportedNssaiAvailabilityData []models.SupportedNssaiAvailabilityData `yaml:"supportedNssaiAvailabilityData"`
+	NfId                           string                                                  `yaml:"nfId"`
+	SupportedNssaiAvailabilityData []models.Nssf_NSSAIAvail_SupportedNssaiAvailabilityData `yaml:"supportedNssaiAvailabilityData"` //nolint:lll
 }
 
 type TaConfig struct {
-	Tai                  *models.Tai               `yaml:"tai"`
-	AccessType           *models.AccessType        `yaml:"accessType"`
-	SupportedSnssaiList  []models.ExtSnssai        `yaml:"supportedSnssaiList"`
-	RestrictedSnssaiList []models.RestrictedSnssai `yaml:"restrictedSnssaiList,omitempty"`
+	Tai                  *models.Tai                               `yaml:"tai"`
+	AccessType           *models.AccessType                        `yaml:"accessType"`
+	SupportedSnssaiList  []models.ExtSnssai                        `yaml:"supportedSnssaiList"`
+	RestrictedSnssaiList []models.Nssf_NSSAIAvail_RestrictedSnssai `yaml:"restrictedSnssaiList,omitempty"`
 }
 
 type SupportedNssaiInPlmn struct {
@@ -259,26 +259,26 @@ type SupportedNssaiInPlmn struct {
 }
 
 type NsiConfig struct {
-	Snssai             *models.Snssai          `yaml:"snssai"`
-	NsiInformationList []models.NsiInformation `yaml:"nsiInformationList"`
+	Snssai             *models.Snssai                     `yaml:"snssai"`
+	NsiInformationList []models.Nssf_NSSel_NsiInformation `yaml:"nsiInformationList"`
 }
 
 type AmfSetConfig struct {
-	AmfSetId                       string                                  `yaml:"amfSetId"`
-	AmfList                        []string                                `yaml:"amfList,omitempty"`
-	NrfAmfSet                      string                                  `yaml:"nrfAmfSet,omitempty"`
-	SupportedNssaiAvailabilityData []models.SupportedNssaiAvailabilityData `yaml:"supportedNssaiAvailabilityData"`
+	AmfSetId                       string                                                  `yaml:"amfSetId"`
+	AmfList                        []string                                                `yaml:"amfList,omitempty"`
+	NrfAmfSet                      string                                                  `yaml:"nrfAmfSet,omitempty"`
+	SupportedNssaiAvailabilityData []models.Nssf_NSSAIAvail_SupportedNssaiAvailabilityData `yaml:"supportedNssaiAvailabilityData"` //nolint:lll
 }
 
 type MappingFromPlmnConfig struct {
-	OperatorName    string                   `yaml:"operatorName,omitempty"`
-	HomePlmnId      *models.PlmnId           `yaml:"homePlmnId"`
-	MappingOfSnssai []models.MappingOfSnssai `yaml:"mappingOfSnssai"`
+	OperatorName    string                              `yaml:"operatorName,omitempty"`
+	HomePlmnId      *models.PlmnId                      `yaml:"homePlmnId"`
+	MappingOfSnssai []models.Nssf_NSSel_MappingOfSnssai `yaml:"mappingOfSnssai"`
 }
 
 type Subscription struct {
-	SubscriptionId   string                                  `yaml:"subscriptionId"`
-	SubscriptionData *models.NssfEventSubscriptionCreateData `yaml:"subscriptionData"`
+	SubscriptionId   string                                                  `yaml:"subscriptionId"`
+	SubscriptionData *models.Nssf_NSSAIAvail_NssfEventSubscriptionCreateData `yaml:"subscriptionData"`
 }
 
 func (c *Config) GetVersion() string {

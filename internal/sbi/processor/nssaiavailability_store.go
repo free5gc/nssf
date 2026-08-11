@@ -25,7 +25,7 @@ import (
 )
 
 func validateSupportedNssaiAvailabilityDataList(
-	c *gin.Context, supportedNssaiAvailabilityData []models.SupportedNssaiAvailabilityData,
+	c *gin.Context, supportedNssaiAvailabilityData []models.Nssf_NSSAIAvail_SupportedNssaiAvailabilityData,
 ) bool {
 	for _, s := range supportedNssaiAvailabilityData {
 		if s.Tai == nil || s.Tai.PlmnId == nil {
@@ -82,7 +82,7 @@ func (p *Processor) NssaiAvailabilityNfInstancePatch(
 	nssaiAvailabilityUpdateInfo plugin.PatchDocument, nfId string,
 ) {
 	var (
-		response = &models.AuthorizedNssaiAvailabilityInfo{}
+		response = &models.Nssf_NSSAIAvail_AuthorizedNssaiAvailabilityInfo{}
 		amfIdx   int
 		original []byte
 		hitAmf   bool
@@ -167,7 +167,7 @@ func (p *Processor) NssaiAvailabilityNfInstancePatch(
 		return
 	}
 
-	var updatedSupportedNssaiAvailabilityData []models.SupportedNssaiAvailabilityData
+	var updatedSupportedNssaiAvailabilityData []models.Nssf_NSSAIAvail_SupportedNssaiAvailabilityData
 	err = json.Unmarshal(modified, &updatedSupportedNssaiAvailabilityData)
 	if err != nil {
 		problemDetails := &models.ProblemDetails{
@@ -202,10 +202,10 @@ func (p *Processor) NssaiAvailabilityNfInstancePatch(
 // NSSAIAvailability PUT method
 func (p *Processor) NssaiAvailabilityNfInstanceUpdate(
 	c *gin.Context,
-	nssaiAvailabilityInfo models.NssaiAvailabilityInfo, nfId string,
+	nssaiAvailabilityInfo models.Nssf_NSSAIAvail_NssaiAvailabilityInfo, nfId string,
 ) {
 	var (
-		response = &models.AuthorizedNssaiAvailabilityInfo{}
+		response = &models.Nssf_NSSAIAvail_AuthorizedNssaiAvailabilityInfo{}
 		hitAmf   bool
 	)
 

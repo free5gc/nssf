@@ -25,18 +25,18 @@ import (
 
 type NetworkSliceInformationGetQuery struct {
 	// nolint: lll
-	NfType models.NrfNfManagementNfType `form:"nf-type" binding:"required,oneof=NRF UDM AMF SMF AUSF NEF PCF SMSF NSSF UDR LMF GMLC 5G_EIR SEPP UPF N3IWF AF UDSF BSF CHF NWDAF PCSCF CBCF HSS UCMF SOR_AF SPAF MME SCSAS SCEF SCP NSSAAF ICSCF SCSCF DRA IMS_AS AANF 5G_DDNMF NSACF MFAF EASDF DCCF MB_SMF TSCTSF ADRF GBA_BSF CEF MB_UPF NSWOF PKMF MNPF SMS_GMSC SMS_IWMSC MBSF MBSTF PANF IP_SM_GW SMS_ROUTER"`
+	NfType models.Nrf_NFMgmt_NFType `form:"nf-type" binding:"required,oneof=NRF UDM AMF SMF AUSF NEF PCF SMSF NSSF UDR LMF GMLC 5G_EIR SEPP UPF N3IWF AF UDSF BSF CHF NWDAF PCSCF CBCF HSS UCMF SOR_AF SPAF MME SCSAS SCEF SCP NSSAAF ICSCF SCSCF DRA IMS_AS AANF 5G_DDNMF NSACF MFAF EASDF DCCF MB_SMF TSCTSF ADRF GBA_BSF CEF MB_UPF NSWOF PKMF MNPF SMS_GMSC SMS_IWMSC MBSF MBSTF PANF IP_SM_GW SMS_ROUTER"`
 
 	NfId string `form:"nf-id" binding:"required,uuid"`
 
 	// nolint: lll
-	SliceInfoRequestForRegistration *models.SliceInfoForRegistration `form:"slice-info-request-for-registration" binding:"omitempty"`
+	SliceInfoRequestForRegistration *models.Nssf_NSSel_SliceInfoForRegistration `form:"slice-info-request-for-registration" binding:"omitempty"`
 
 	// nolint: lll
-	SliceInfoRequestForPduSession *models.SliceInfoForPduSession `form:"slice-info-request-for-pdu-session" binding:"omitempty"`
+	SliceInfoRequestForPduSession *models.Nssf_NSSel_SliceInfoForPDUSession `form:"slice-info-request-for-pdu-session" binding:"omitempty"`
 
 	// nolint: lll
-	SliceInfoRequestForUeConfigurationUpdate *models.SliceInfoForUeConfigurationUpdate `form:"slice-info-request-for-ue-configuration-update" binding:"omitempty"`
+	SliceInfoRequestForUeConfigurationUpdate *models.Nssf_NSSel_SliceInfoForUEConfigurationUpdate `form:"slice-info-request-for-ue-configuration-update" binding:"omitempty"`
 
 	HomePlmnId        *models.PlmnId `form:"home-plmn-id" binding:"required_without=Tai,omitempty"`
 	Tai               *models.Tai    `form:"tai" binding:"required_without=HomePlmnId,omitempty"`
@@ -46,8 +46,8 @@ type NetworkSliceInformationGetQuery struct {
 // Check if the NF service consumer is authorized
 // TODO: Check if the NF service consumer is legal with local configuration, or possibly after querying NRF through
 // `nf-id` e.g. Whether the V-NSSF is authorized
-func checkNfServiceConsumer(nfType models.NrfNfManagementNfType) error {
-	if nfType != models.NrfNfManagementNfType_AMF && nfType != models.NrfNfManagementNfType_NSSF {
+func checkNfServiceConsumer(nfType models.Nrf_NFMgmt_NFType) error {
+	if nfType != models.Nrf_NFMgmt_NFType_AMF && nfType != models.Nrf_NFMgmt_NFType_NSSF {
 		return fmt.Errorf("`nf-type`:'%s' is not authorized to retrieve the slice selection information", string(nfType))
 	}
 
@@ -60,7 +60,7 @@ func (p *Processor) NSSelectionSliceInformationGet(
 ) {
 	var (
 		status         int
-		response       *models.AuthorizedNetworkSliceInfo
+		response       *models.Nssf_NSSel_AuthorizedNetworkSliceInfo
 		problemDetails *models.ProblemDetails
 	)
 
@@ -146,9 +146,9 @@ func (p *Processor) NSSelectionSliceInformationGet(
 
 // Set Allowed NSSAI with Subscribed S-NSSAI(s) which are marked as default S-NSSAI(s)
 func useDefaultSubscribedSnssai(
-	param NetworkSliceInformationGetQuery, authorizedNetworkSliceInfo *models.AuthorizedNetworkSliceInfo,
+	param NetworkSliceInformationGetQuery, authorizedNetworkSliceInfo *models.Nssf_NSSel_AuthorizedNetworkSliceInfo,
 ) {
-	var mappingOfSnssai []models.MappingOfSnssai
+	var mappingOfSnssai []models.Nssf_NSSel_MappingOfSnssai
 	if param.HomePlmnId != nil {
 		// Find mapping of Subscribed S-NSSAI of UE's HPLMN to S-NSSAI in Serving PLMN from NSSF configuration
 		mappingOfSnssai = util.GetMappingOfPlmnFromConfig(*param.HomePlmnId)
@@ -184,7 +184,7 @@ func useDefaultSubscribedSnssai(
 				continue
 			}
 
-			var allowedSnssaiElement models.AllowedSnssai
+			var allowedSnssaiElement models.Nssf_NSSel_AllowedSnssai
 			allowedSnssaiElement.AllowedSnssai = new(models.Snssai)
 			*allowedSnssaiElement.AllowedSnssai = mappingOfSubscribedSnssai
 			nsiInformationList := util.GetNsiInformationListFromConfig(mappingOfSubscribedSnssai)
@@ -202,7 +202,7 @@ func useDefaultSubscribedSnssai(
 			// Default Access Type is set to 3GPP Access if no TAI is provided
 			// TODO: Depend on operator implementation, it may also return S-NSSAIs in all valid Access Type if
 			//       UE's Access Type could not be identified
-			accessType := models.AccessType__3_GPP_ACCESS
+			accessType := models.AccessType_3_GPP_ACCESS
 			if param.Tai != nil {
 				accessType = util.GetAccessTypeFromConfig(*param.Tai)
 			}
@@ -214,7 +214,7 @@ func useDefaultSubscribedSnssai(
 
 // Set Configured NSSAI with S-NSSAI(s) in Requested NSSAI which are marked as Default Configured NSSAI
 func useDefaultConfiguredNssai(
-	param NetworkSliceInformationGetQuery, authorizedNetworkSliceInfo *models.AuthorizedNetworkSliceInfo,
+	param NetworkSliceInformationGetQuery, authorizedNetworkSliceInfo *models.Nssf_NSSel_AuthorizedNetworkSliceInfo,
 ) {
 	for _, requestedSnssai := range param.SliceInfoRequestForRegistration.RequestedNssai {
 		// Check whether the Default Configured S-NSSAI is standard, which could be commonly decided by all roaming partners
@@ -227,7 +227,7 @@ func useDefaultConfiguredNssai(
 		// Check whether the Default Configured S-NSSAI is subscribed
 		for _, subscribedSnssai := range param.SliceInfoRequestForRegistration.SubscribedNssai {
 			if openapi.SnssaiEqualFold(requestedSnssai, *subscribedSnssai.SubscribedSnssai) {
-				var configuredSnssai models.ConfiguredSnssai
+				var configuredSnssai models.Nssf_NSSel_ConfiguredSnssai
 				configuredSnssai.ConfiguredSnssai = new(models.Snssai)
 				*configuredSnssai.ConfiguredSnssai = requestedSnssai
 
@@ -242,9 +242,9 @@ func useDefaultConfiguredNssai(
 
 // Set Configured NSSAI with Subscribed S-NSSAI(s)
 func setConfiguredNssai(
-	param NetworkSliceInformationGetQuery, authorizedNetworkSliceInfo *models.AuthorizedNetworkSliceInfo,
+	param NetworkSliceInformationGetQuery, authorizedNetworkSliceInfo *models.Nssf_NSSel_AuthorizedNetworkSliceInfo,
 ) {
-	var mappingOfSnssai []models.MappingOfSnssai
+	var mappingOfSnssai []models.Nssf_NSSel_MappingOfSnssai
 	if param.HomePlmnId != nil {
 		// Find mapping of Subscribed S-NSSAI of UE's HPLMN to S-NSSAI in Serving PLMN from NSSF configuration
 		mappingOfSnssai = util.GetMappingOfPlmnFromConfig(*param.HomePlmnId)
@@ -273,7 +273,7 @@ func setConfiguredNssai(
 		}
 
 		if util.CheckSupportedSnssaiInPlmn(mappingOfSubscribedSnssai, *param.Tai.PlmnId) {
-			var configuredSnssai models.ConfiguredSnssai
+			var configuredSnssai models.Nssf_NSSel_ConfiguredSnssai
 			configuredSnssai.ConfiguredSnssai = new(models.Snssai)
 			*configuredSnssai.ConfiguredSnssai = mappingOfSubscribedSnssai
 			if param.HomePlmnId != nil && !util.CheckStandardSnssai(*subscribedSnssai.SubscribedSnssai) {
@@ -291,9 +291,9 @@ func setConfiguredNssai(
 // Network slice selection for registration
 // The function is executed when the IE, `slice-info-request-for-registration`, is provided in query parameters
 func nsselectionForRegistration(param NetworkSliceInformationGetQuery) (
-	int, *models.AuthorizedNetworkSliceInfo, *models.ProblemDetails,
+	int, *models.Nssf_NSSel_AuthorizedNetworkSliceInfo, *models.ProblemDetails,
 ) {
-	authorizedNetworkSliceInfo := &models.AuthorizedNetworkSliceInfo{}
+	authorizedNetworkSliceInfo := &models.Nssf_NSSel_AuthorizedNetworkSliceInfo{}
 	var status int
 	if param.HomePlmnId != nil {
 		// Check whether UE's Home PLMN is supported when UE is a roamer
@@ -404,7 +404,7 @@ func nsselectionForRegistration(param NetworkSliceInformationGetQuery) (
 					continue
 				} else {
 					// Add mappings to Allowed NSSAI list
-					var allowedSnssaiElement models.AllowedSnssai
+					var allowedSnssaiElement models.Nssf_NSSel_AllowedSnssai
 					allowedSnssaiElement.AllowedSnssai = new(models.Snssai)
 					*allowedSnssaiElement.AllowedSnssai = *targetMapping.ServingSnssai
 					allowedSnssaiElement.MappedHomeSnssai = new(models.Snssai)
@@ -413,7 +413,7 @@ func nsselectionForRegistration(param NetworkSliceInformationGetQuery) (
 					// Default Access Type is set to 3GPP Access if no TAI is provided
 					// TODO: Depend on operator implementation, it may also return S-NSSAIs in all valid Access Type if
 					//       UE's Access Type could not be identified
-					accessType := models.AccessType__3_GPP_ACCESS
+					accessType := models.AccessType_3_GPP_ACCESS
 					if param.Tai != nil {
 						accessType = util.GetAccessTypeFromConfig(*param.Tai)
 					}
@@ -437,7 +437,7 @@ func nsselectionForRegistration(param NetworkSliceInformationGetQuery) (
 					continue
 				} else {
 					// Add mappings to Allowed NSSAI list
-					var allowedSnssaiElement models.AllowedSnssai
+					var allowedSnssaiElement models.Nssf_NSSel_AllowedSnssai
 					allowedSnssaiElement.AllowedSnssai = new(models.Snssai)
 					*allowedSnssaiElement.AllowedSnssai = *targetMapping.ServingSnssai
 					allowedSnssaiElement.MappedHomeSnssai = new(models.Snssai)
@@ -446,7 +446,7 @@ func nsselectionForRegistration(param NetworkSliceInformationGetQuery) (
 					// Default Access Type is set to 3GPP Access if no TAI is provided
 					// TODO: Depend on operator implementation, it may also return S-NSSAIs in all valid Access Type if
 					//       UE's Access Type could not be identified
-					accessType := models.AccessType__3_GPP_ACCESS
+					accessType := models.AccessType_3_GPP_ACCESS
 					if param.Tai != nil {
 						accessType = util.GetAccessTypeFromConfig(*param.Tai)
 					}
@@ -532,7 +532,7 @@ func nsselectionForRegistration(param NetworkSliceInformationGetQuery) (
 					// Add it to Allowed NSSAI list
 					hitSubscription = true
 
-					var allowedSnssaiElement models.AllowedSnssai
+					var allowedSnssaiElement models.Nssf_NSSel_AllowedSnssai
 					allowedSnssaiElement.AllowedSnssai = new(models.Snssai)
 					*allowedSnssaiElement.AllowedSnssai = requestedSnssai
 					nsiInformationList := util.GetNsiInformationListFromConfig(requestedSnssai)
@@ -550,7 +550,7 @@ func nsselectionForRegistration(param NetworkSliceInformationGetQuery) (
 					// Default Access Type is set to 3GPP Access if no TAI is provided
 					// TODO: Depend on operator implementation, it may also return S-NSSAIs in all valid Access Type if
 					//       UE's Access Type could not be identified
-					accessType := models.AccessType__3_GPP_ACCESS
+					accessType := models.AccessType_3_GPP_ACCESS
 					if param.Tai != nil {
 						accessType = util.GetAccessTypeFromConfig(*param.Tai)
 					}
@@ -607,7 +607,7 @@ func nsselectionForRegistration(param NetworkSliceInformationGetQuery) (
 	return status, authorizedNetworkSliceInfo, nil
 }
 
-func selectNsiInformation(nsiInformationList []models.NsiInformation) models.NsiInformation {
+func selectNsiInformation(nsiInformationList []models.Nssf_NSSel_NsiInformation) models.Nssf_NSSel_NsiInformation {
 	// TODO: Algorithm to select Network Slice Instance
 	//       Take roaming indication into consideration
 
@@ -619,10 +619,10 @@ func selectNsiInformation(nsiInformationList []models.NsiInformation) models.Nsi
 // Network slice selection for PDU session
 // The function is executed when the IE, `slice-info-for-pdu-session`, is provided in query parameters
 func nsselectionForPduSession(param NetworkSliceInformationGetQuery) (
-	int, *models.AuthorizedNetworkSliceInfo, *models.ProblemDetails,
+	int, *models.Nssf_NSSel_AuthorizedNetworkSliceInfo, *models.ProblemDetails,
 ) {
 	var status int
-	authorizedNetworkSliceInfo := &models.AuthorizedNetworkSliceInfo{}
+	authorizedNetworkSliceInfo := &models.Nssf_NSSel_AuthorizedNetworkSliceInfo{}
 
 	if param.SliceInfoRequestForPduSession.SNssai == nil {
 		problemDetails := &models.ProblemDetails{
@@ -683,7 +683,7 @@ func nsselectionForPduSession(param NetworkSliceInformationGetQuery) (
 	}
 
 	if param.HomePlmnId != nil {
-		if param.SliceInfoRequestForPduSession.RoamingIndication == models.RoamingIndication_NON_ROAMING {
+		if param.SliceInfoRequestForPduSession.RoamingIndication == models.Nssf_NSSel_RoamingIndication_NON_ROAMING {
 			detail := "`home-plmn-id` is provided, which contradicts `roamingIndication`:'NON_ROAMING'"
 			problemDetails := &models.ProblemDetails{
 				Title:  util.INVALID_REQUEST,
@@ -701,7 +701,7 @@ func nsselectionForPduSession(param NetworkSliceInformationGetQuery) (
 			return status, nil, problemDetails
 		}
 	} else {
-		if param.SliceInfoRequestForPduSession.RoamingIndication != models.RoamingIndication_NON_ROAMING {
+		if param.SliceInfoRequestForPduSession.RoamingIndication != models.Nssf_NSSel_RoamingIndication_NON_ROAMING {
 			detail := fmt.Sprintf("`home-plmn-id` is not provided, which contradicts `roamingIndication`:'%s'",
 				string(param.SliceInfoRequestForPduSession.RoamingIndication))
 			problemDetails := &models.ProblemDetails{
@@ -734,10 +734,10 @@ func nsselectionForPduSession(param NetworkSliceInformationGetQuery) (
 	nsiInformationList := util.GetNsiInformationListFromConfig(*param.SliceInfoRequestForPduSession.SNssai)
 
 	if len(nsiInformationList) == 0 {
-		*authorizedNetworkSliceInfo = models.AuthorizedNetworkSliceInfo{}
+		*authorizedNetworkSliceInfo = models.Nssf_NSSel_AuthorizedNetworkSliceInfo{}
 	} else {
 		nsiInformation := selectNsiInformation(nsiInformationList)
-		authorizedNetworkSliceInfo.NsiInformation = new(models.NsiInformation)
+		authorizedNetworkSliceInfo.NsiInformation = new(models.Nssf_NSSel_NsiInformation)
 		*authorizedNetworkSliceInfo.NsiInformation = nsiInformation
 	}
 

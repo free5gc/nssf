@@ -36,9 +36,9 @@ func Init() {
 	nssfContext.RegisterIPv4 = factory.NssfSbiDefaultIPv4
 	nssfContext.SBIPort = factory.NssfSbiDefaultPort
 
-	serviceName := []models.ServiceName{
-		models.ServiceName_NNSSF_NSSELECTION,
-		models.ServiceName_NNSSF_NSSAIAVAILABILITY,
+	serviceName := []models.Nrf_NFMgmt_ServiceName{
+		models.Nrf_NFMgmt_ServiceName_NNSSF_NSSELECTION,
+		models.Nrf_NFMgmt_ServiceName_NNSSF_NSSAIAVAILABILITY,
 	}
 	nssfContext.NfService = initNfService(serviceName, "1.0.0")
 
@@ -46,7 +46,7 @@ func Init() {
 }
 
 type NFContext interface {
-	AuthorizationCheck(token string, serviceName models.ServiceName) error
+	AuthorizationCheck(token string, serviceName models.Nrf_NFMgmt_ServiceName) error
 }
 
 var _ NFContext = &NSSFContext{}
@@ -59,7 +59,7 @@ type NSSFContext struct {
 	// HttpIpv6Address string
 	BindingIPv4       string
 	SBIPort           int
-	NfService         map[models.ServiceName]models.NrfNfManagementNfService
+	NfService         map[models.Nrf_NFMgmt_ServiceName]models.Nrf_NFMgmt_NFService
 	NrfUri            string
 	NrfCertPem        string
 	SupportedPlmnList []models.PlmnId
@@ -101,28 +101,28 @@ func InitNssfContext() {
 	nssfContext.SupportedPlmnList = nssfConfig.Configuration.SupportedPlmnList
 }
 
-func initNfService(serviceName []models.ServiceName, version string) (
-	nfService map[models.ServiceName]models.NrfNfManagementNfService,
+func initNfService(serviceName []models.Nrf_NFMgmt_ServiceName, version string) (
+	nfService map[models.Nrf_NFMgmt_ServiceName]models.Nrf_NFMgmt_NFService,
 ) {
 	versionUri := "v" + strings.Split(version, ".")[0]
-	nfService = make(map[models.ServiceName]models.NrfNfManagementNfService)
+	nfService = make(map[models.Nrf_NFMgmt_ServiceName]models.Nrf_NFMgmt_NFService)
 	for idx, name := range serviceName {
-		nfService[name] = models.NrfNfManagementNfService{
+		nfService[name] = models.Nrf_NFMgmt_NFService{
 			ServiceInstanceId: strconv.Itoa(idx),
 			ServiceName:       name,
-			Versions: []models.NfServiceVersion{
+			Versions: []models.Nrf_NFMgmt_NFServiceVersion{
 				{
 					ApiFullVersion:  version,
 					ApiVersionInUri: versionUri,
 				},
 			},
 			Scheme:          nssfContext.UriScheme,
-			NfServiceStatus: models.NfServiceStatus_REGISTERED,
+			NfServiceStatus: models.Nrf_NFMgmt_NFServiceStatus_REGISTERED,
 			ApiPrefix:       GetIpv4Uri(),
-			IpEndPoints: []models.IpEndPoint{
+			IpEndPoints: []models.Nrf_NFMgmt_IpEndPoint{
 				{
 					Ipv4Address: nssfContext.RegisterIPv4,
-					Transport:   models.NrfNfManagementTransportProtocol_TCP,
+					Transport:   models.Nrf_NFMgmt_TransportProtocol_TCP,
 					Port:        int32(nssfContext.SBIPort),
 				},
 			},
@@ -140,17 +140,17 @@ func GetSelf() *NSSFContext {
 	return &nssfContext
 }
 
-func (c *NSSFContext) GetTokenCtx(serviceName models.ServiceName, targetNF models.NrfNfManagementNfType) (
+func (c *NSSFContext) GetTokenCtx(serviceName models.Nrf_NFMgmt_ServiceName, targetNF models.Nrf_NFMgmt_NFType) (
 	context.Context, *models.ProblemDetails, error,
 ) {
 	if !c.OAuth2Required {
 		return context.TODO(), nil, nil
 	}
-	return oauth.GetTokenCtx(models.NrfNfManagementNfType_NSSF, targetNF,
+	return oauth.GetTokenCtx(models.Nrf_NFMgmt_NFType_NSSF, targetNF,
 		c.NfId, c.NrfUri, string(serviceName))
 }
 
-func (c *NSSFContext) AuthorizationCheck(token string, serviceName models.ServiceName) error {
+func (c *NSSFContext) AuthorizationCheck(token string, serviceName models.Nrf_NFMgmt_ServiceName) error {
 	if !c.OAuth2Required {
 		logger.UtilLog.Debugf("NSSFContext::AuthorizationCheck: OAuth2 not required\n")
 		return nil

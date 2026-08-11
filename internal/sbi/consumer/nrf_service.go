@@ -16,23 +16,23 @@ import (
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/openapi"
 	"github.com/free5gc/openapi/models"
-	"github.com/free5gc/openapi/nrf/NFManagement"
+	"github.com/free5gc/openapi/nrf/NFMgmt"
 )
 
 type NrfService struct {
-	nrfNfMgmtClient *NFManagement.APIClient
+	nrfNfMgmtClient *NFMgmt.APIClient
 	// NOTE: No mutex needed. One connection at a time.
 }
 
 func (ns *NrfService) buildNFProfile(context *nssf_context.NSSFContext) (
-	profile models.NrfNfManagementNfProfile, err error,
+	profile models.Nrf_NFMgmt_NFProfile, err error,
 ) {
 	profile.NfInstanceId = context.NfId
-	profile.NfType = models.NrfNfManagementNfType_NSSF
-	profile.NfStatus = models.NrfNfManagementNfStatus_REGISTERED
+	profile.NfType = models.Nrf_NFMgmt_NFType_NSSF
+	profile.NfStatus = models.Nrf_NFMgmt_NFStatus_REGISTERED
 	profile.PlmnList = context.SupportedPlmnList
 	profile.Ipv4Addresses = []string{context.RegisterIPv4}
-	var services []models.NrfNfManagementNfService
+	var services []models.Nrf_NFMgmt_NFService
 	for _, nfService := range context.NfService {
 		services = append(services, nfService)
 	}
@@ -52,8 +52,8 @@ func (ns *NrfService) SendRegisterNFInstance(ctx context.Context, nssfCtx *nssf_
 	}
 	apiClient := ns.nrfNfMgmtClient
 
-	var res *NFManagement.RegisterNFInstanceResponse
-	var nf models.NrfNfManagementNfProfile
+	var res *NFMgmt.RegisterNFInstanceResponse
+	var nf models.Nrf_NFMgmt_NFProfile
 	finish := false
 	for !finish {
 		select {
@@ -61,9 +61,9 @@ func (ns *NrfService) SendRegisterNFInstance(ctx context.Context, nssfCtx *nssf_
 			return "", "", fmt.Errorf("context done")
 
 		default:
-			req := &NFManagement.RegisterNFInstanceRequest{
-				NfInstanceID:             &nfInstanceId,
-				NrfNfManagementNfProfile: &profile,
+			req := &NFMgmt.RegisterNFInstanceRequest{
+				NfInstanceID: &nfInstanceId,
+				RequestBody:  &profile,
 			}
 
 			res, err = apiClient.NFInstanceIDDocumentApi.RegisterNFInstance(ctx, req)
@@ -78,11 +78,13 @@ func (ns *NrfService) SendRegisterNFInstance(ctx context.Context, nssfCtx *nssf_
 			resourceUri := res.Location
 			resourceNrfUri, _, _ = strings.Cut(resourceUri, "/nnrf-nfm/")
 			retrieveNfInstanceId = resourceUri[strings.LastIndex(resourceUri, "/")+1:]
-			nf = res.NrfNfManagementNfProfile
+			if res.Nrf_NFMgmt_NFProfile != nil {
+				nf = *res.Nrf_NFMgmt_NFProfile
+			}
 
 			oauth2 := false
-			if nf.CustomInfo != nil {
-				v, ok := nf.CustomInfo["oauth2"].(bool)
+			if customInfo, isMap := nf.CustomInfo.(map[string]interface{}); isMap {
+				v, ok := customInfo["oauth2"].(bool)
 				if ok {
 					oauth2 = v
 					logger.MainLog.Infoln("OAuth2 setting receive from NRF:", oauth2)
@@ -103,14 +105,15 @@ func (ns *NrfService) SendDeregisterNFInstance(nfInstanceId string) (*models.Pro
 
 	var err error
 
-	ctx, pd, err := nssf_context.GetSelf().GetTokenCtx(models.ServiceName_NNRF_NFM, models.NrfNfManagementNfType_NRF)
+	ctx, pd, err := nssf_context.GetSelf().GetTokenCtx(
+		models.Nrf_NFMgmt_ServiceName_NNRF_NFM, models.Nrf_NFMgmt_NFType_NRF)
 	if err != nil {
 		return pd, err
 	}
 
 	client := ns.nrfNfMgmtClient
 
-	req := &NFManagement.DeregisterNFInstanceRequest{
+	req := &NFMgmt.DeregisterNFInstanceRequest{
 		NfInstanceID: &nfInstanceId,
 	}
 
@@ -118,8 +121,8 @@ func (ns *NrfService) SendDeregisterNFInstance(nfInstanceId string) (*models.Pro
 	if err != nil {
 		if apiErr, ok := err.(openapi.GenericOpenAPIError); ok {
 			// API error
-			if deregError, ok2 := apiErr.Model().(NFManagement.DeregisterNFInstanceError); ok2 {
-				return &deregError.ProblemDetails, err
+			if deregError, ok2 := apiErr.Model().(NFMgmt.DeregisterNFInstanceError); ok2 {
+				return deregError.ProblemDetails, err
 			}
 			return nil, err
 		}
