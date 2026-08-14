@@ -62,6 +62,7 @@ type NSSFContext struct {
 	NfService         map[models.Nrf_NFMgmt_ServiceName]models.Nrf_NFMgmt_NFService
 	NrfUri            string
 	NrfCertPem        string
+	NrfNfInstanceID   string
 	SupportedPlmnList []models.PlmnId
 	OAuth2Required    bool
 }
@@ -98,6 +99,7 @@ func InitNssfContext() {
 		nssfContext.NrfUri = fmt.Sprintf("%s://%s:%d", nssfContext.UriScheme, "127.0.0.1", NRF_PORT)
 	}
 	nssfContext.NrfCertPem = nssfConfig.Configuration.NrfCertPem
+	nssfContext.NrfNfInstanceID = nssfConfig.Configuration.NrfNfInstanceId
 	nssfContext.SupportedPlmnList = nssfConfig.Configuration.SupportedPlmnList
 }
 
@@ -146,8 +148,64 @@ func (c *NSSFContext) GetTokenCtx(serviceName models.Nrf_NFMgmt_ServiceName, tar
 	if !c.OAuth2Required {
 		return context.TODO(), nil, nil
 	}
-	return oauth.GetTokenCtx(models.Nrf_NFMgmt_NFType_NSSF, targetNF,
-		c.NfId, c.NrfUri, string(serviceName))
+	return oauth.GetTokenCtx(c.tokenRequest(serviceName, targetNF))
+}
+
+func (c *NSSFContext) GetTokenCtxForNFInstance(serviceName models.Nrf_NFMgmt_ServiceName,
+	targetNF models.Nrf_NFMgmt_NFType, targetNFInstanceID string,
+) (context.Context, *models.ProblemDetails, error) {
+	if !c.OAuth2Required {
+		return context.TODO(), nil, nil
+	}
+	targetID, err := uuid.Parse(strings.TrimSpace(targetNFInstanceID))
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid target NF instance ID: %w", err)
+	}
+	if targetID.Version() != 4 {
+		return nil, nil, fmt.Errorf("invalid target NF instance ID: UUID must be version 4")
+	}
+	return oauth.GetTokenCtx(c.tokenRequestForNFInstance(serviceName, targetNF, targetNFInstanceID))
+}
+
+func (c *NSSFContext) GetTokenCtxForNRF(serviceName models.Nrf_NFMgmt_ServiceName) (
+	context.Context, *models.ProblemDetails, error,
+) {
+	return c.GetTokenCtxForNFInstance(serviceName, models.Nrf_NFMgmt_NFType_NRF, c.NrfNfInstanceID)
+}
+
+func (c *NSSFContext) tokenRequest(serviceName models.Nrf_NFMgmt_ServiceName,
+	targetNF models.Nrf_NFMgmt_NFType,
+) oauth.TokenRequest {
+	return oauth.TokenRequest{
+		ConsumerNFType: models.Nrf_NFMgmt_NFType_NSSF, ConsumerNFInstanceID: c.NfId,
+		TargetNFType: targetNF, NRFURI: c.NrfUri, Scope: string(serviceName),
+	}
+}
+
+func (c *NSSFContext) tokenRequestForNFInstance(serviceName models.Nrf_NFMgmt_ServiceName,
+	targetNF models.Nrf_NFMgmt_NFType, targetNFInstanceID string,
+) oauth.TokenRequest {
+	request := c.tokenRequest(serviceName, targetNF)
+	request.TargetNFInstanceID = targetNFInstanceID
+	return request
+}
+
+func (c *NSSFContext) SetOAuth2Required(required bool) error {
+	if !required {
+		c.OAuth2Required = false
+		return nil
+	}
+	if strings.TrimSpace(c.NrfCertPem) == "" {
+		return fmt.Errorf("OAuth2 enabled but NRF certificate path is empty")
+	}
+	if strings.TrimSpace(c.NrfUri) == "" {
+		return fmt.Errorf("OAuth2 enabled but NRF URI is empty")
+	}
+	if err := uuid.Validate(c.NrfNfInstanceID); err != nil {
+		return fmt.Errorf("OAuth2 enabled but trusted NRF instance ID is invalid: %w", err)
+	}
+	c.OAuth2Required = true
+	return nil
 }
 
 func (c *NSSFContext) AuthorizationCheck(token string, serviceName models.Nrf_NFMgmt_ServiceName) error {
@@ -157,5 +215,7 @@ func (c *NSSFContext) AuthorizationCheck(token string, serviceName models.Nrf_NF
 	}
 
 	logger.UtilLog.Debugf("NSSFContext::AuthorizationCheck: token[%s] serviceName[%s]\n", token, serviceName)
-	return oauth.VerifyOAuth(token, string(serviceName), c.NrfCertPem)
+	return oauth.VerifyOAuth(token, string(serviceName), oauth.AudiencePolicy{
+		NFInstanceID: c.NfId, NFType: models.Nrf_NFMgmt_NFType_NSSF,
+	}, c.NrfNfInstanceID, c.NrfCertPem)
 }

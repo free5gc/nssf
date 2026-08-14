@@ -74,8 +74,7 @@ func (ns *NrfService) SendRegisterNFInstance(ctx context.Context, applyOAuth2 bo
 			if res.Nrf_NFMgmt_NFProfile != nil {
 				nf = *res.Nrf_NFMgmt_NFProfile
 			}
-			ns.processRegisterResponse(nssfCtx, nf, applyOAuth2)
-			return nil
+			return ns.processRegisterResponse(nssfCtx, nf, applyOAuth2)
 		}
 		logger.ConsumerLog.Errorf("NSSF register to NRF Error[%v]", err)
 		select {
@@ -92,7 +91,7 @@ func (ns *NrfService) processRegisterResponse(
 	nssfCtx *nssf_context.NSSFContext,
 	nf models.Nrf_NFMgmt_NFProfile,
 	applyOAuth2 bool,
-) {
+) error {
 	ns.heartbeatTimer = nf.HeartBeatTimer
 
 	oauth2 := false
@@ -103,13 +102,11 @@ func (ns *NrfService) processRegisterResponse(
 		}
 	}
 	if applyOAuth2 {
-		nssfCtx.OAuth2Required = oauth2
-		if oauth2 && nssfCtx.NrfCertPem == "" {
-			logger.CfgLog.Error("OAuth2 enable but no nrfCertPem provided in config.")
-		}
+		return nssfCtx.SetOAuth2Required(oauth2)
 	} else if oauth2 != nssfCtx.OAuth2Required {
 		logger.ConsumerLog.Warnf("NRF OAuth2 setting changed to %v, restart NSSF to apply it", oauth2)
 	}
+	return nil
 }
 
 // SendUpdateNFInstance sends an NFUpdate PATCH to the NRF, honoring ctx. The
@@ -119,12 +116,12 @@ func (ns *NrfService) SendUpdateNFInstance(ctx context.Context, patchItems []mod
 	nf models.Nrf_NFMgmt_NFProfile, problemDetails *models.ProblemDetails, err error,
 ) {
 	nssfCtx := nssf_context.GetSelf()
-	tokCtx, pd, err := nssfCtx.GetTokenCtx(
-		models.Nrf_NFMgmt_ServiceName_NNRF_NFM, models.Nrf_NFMgmt_NFType_NRF)
+	tokCtx, pd, err := nssfCtx.GetTokenCtxForNRF(
+		models.Nrf_NFMgmt_ServiceName_NNRF_NFM)
 	if err != nil {
 		return nf, pd, err
 	}
-	// GetTokenCtx takes no parent, so the token request stays uncancelable;
+	// GetTokenCtxForNRF takes no parent, so the token request stays uncancelable;
 	// transplanting the token lets at least the PATCH honor ctx.
 	if tok := tokCtx.Value(openapi.ContextOAuth2); tok != nil {
 		ctx = context.WithValue(ctx, openapi.ContextOAuth2, tok)
@@ -159,8 +156,8 @@ func (ns *NrfService) SendDeregisterNFInstance(nfInstanceId string) (*models.Pro
 
 	var err error
 
-	ctx, pd, err := nssf_context.GetSelf().GetTokenCtx(
-		models.Nrf_NFMgmt_ServiceName_NNRF_NFM, models.Nrf_NFMgmt_NFType_NRF)
+	ctx, pd, err := nssf_context.GetSelf().GetTokenCtxForNRF(
+		models.Nrf_NFMgmt_ServiceName_NNRF_NFM)
 	if err != nil {
 		return pd, err
 	}
