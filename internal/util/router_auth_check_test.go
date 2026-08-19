@@ -24,7 +24,7 @@ func newMockNSSFContext() *mockNSSFContext {
 	return &mockNSSFContext{}
 }
 
-func (m *mockNSSFContext) AuthorizationCheck(token string, serviceName models.ServiceName) error {
+func (m *mockNSSFContext) AuthorizationCheck(token string, serviceName models.Nrf_NFMgmt_ServiceName) error {
 	if token == Valid {
 		return nil
 	}
@@ -85,7 +85,7 @@ func TestRouterAuthorizationCheck_Check(t *testing.T) {
 			}
 			c.Request.Header.Set("Authorization", tt.args.token)
 
-			var testService models.ServiceName = "testService"
+			var testService models.Nrf_NFMgmt_ServiceName = "testService"
 
 			rac := util.NewRouterAuthorizationCheck(testService)
 			rac.Check(c, newMockNSSFContext())

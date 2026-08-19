@@ -167,7 +167,7 @@ func (s *Server) NSSAIAvailabilityPut(c *gin.Context) {
 		return
 	}
 
-	var nssaiAvailabilityInfo models.NssaiAvailabilityInfo
+	var nssaiAvailabilityInfo models.Nssf_NSSAIAvail_NssaiAvailabilityInfo
 	data, err := c.GetRawData()
 	if err != nil {
 		problemDetails := &models.ProblemDetails{
@@ -199,7 +199,7 @@ func (s *Server) NSSAIAvailabilitySubscriptionPatch(c *gin.Context) {
 }
 
 func (s *Server) NSSAIAvailabilityPost(c *gin.Context) {
-	var createData models.NssfEventSubscriptionCreateData
+	var createData models.Nssf_NSSAIAvail_NssfEventSubscriptionCreateData
 
 	requestBody, err := c.GetRawData()
 	if err != nil {

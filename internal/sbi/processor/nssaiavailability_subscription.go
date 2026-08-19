@@ -24,7 +24,9 @@ import (
 
 // Create a new subscription with an unused ID and add it to configuration
 // In this implementation, string converted from 32-bit integer is used as subscription ID
-func createSubscription(createData models.NssfEventSubscriptionCreateData) (factory.Subscription, error) {
+func createSubscription(
+	createData models.Nssf_NSSAIAvail_NssfEventSubscriptionCreateData,
+) (factory.Subscription, error) {
 	var subscription factory.Subscription
 	var idx uint32 = 1
 	factory.NssfConfig.Lock()
@@ -45,7 +47,7 @@ func createSubscription(createData models.NssfEventSubscriptionCreateData) (fact
 	}
 
 	subscription.SubscriptionId = strconv.Itoa(int(idx))
-	subscription.SubscriptionData = new(models.NssfEventSubscriptionCreateData)
+	subscription.SubscriptionData = new(models.Nssf_NSSAIAvail_NssfEventSubscriptionCreateData)
 	*subscription.SubscriptionData = createData
 
 	factory.NssfConfig.Subscriptions = append(factory.NssfConfig.Subscriptions, subscription)
@@ -56,10 +58,10 @@ func createSubscription(createData models.NssfEventSubscriptionCreateData) (fact
 // NSSAIAvailability subscription POST method
 func (p *Processor) NssaiAvailabilitySubscriptionCreate(
 	c *gin.Context,
-	createData models.NssfEventSubscriptionCreateData,
+	createData models.Nssf_NSSAIAvail_NssfEventSubscriptionCreateData,
 ) {
 	var (
-		response       = &models.NssfEventSubscriptionCreatedData{}
+		response       = &models.Nssf_NSSAIAvail_NssfEventSubscriptionCreatedData{}
 		problemDetails *models.ProblemDetails
 	)
 

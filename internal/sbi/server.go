@@ -104,7 +104,7 @@ func newRouter(s *Server) *gin.Engine {
 
 	for _, serviceName := range s.Config().Configuration.ServiceNameList {
 		switch serviceName {
-		case models.ServiceName_NNSSF_NSSAIAVAILABILITY:
+		case models.Nrf_NFMgmt_ServiceName_NNSSF_NSSAIAVAILABILITY:
 			nssaiAvailabilityGroup := router.Group(factory.NssfNssaiavailResUriPrefix)
 			nssaiAvailabilityGroup.Use(func(c *gin.Context) {
 				// oauth middleware
@@ -113,7 +113,7 @@ func newRouter(s *Server) *gin.Engine {
 			nssaiAvailabilityRoutes := s.getNssaiAvailabilityRoutes()
 			AddService(nssaiAvailabilityGroup, nssaiAvailabilityRoutes)
 
-		case models.ServiceName_NNSSF_NSSELECTION:
+		case models.Nrf_NFMgmt_ServiceName_NNSSF_NSSELECTION:
 			nsSelectionGroup := router.Group(factory.NssfNsselectResUriPrefix)
 			nsSelectionGroup.Use(func(c *gin.Context) {
 				// oauth middleware

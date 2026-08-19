@@ -9,13 +9,13 @@ import (
 )
 
 type NsselectionQueryParameter struct {
-	NfType *models.NrfNfManagementNfType `json:"nf-type"`
+	NfType *models.Nrf_NFMgmt_NFType `json:"nf-type"`
 
 	NfId string `json:"nf-id"`
 
-	SliceInfoRequestForRegistration *models.SliceInfoForRegistration `json:"slice-info-request-for-registration,omitempty"`
+	SliceInfoRequestForRegistration *models.Nssf_NSSel_SliceInfoForRegistration `json:"slice-info-request-for-registration,omitempty"` //nolint:lll
 
-	SliceInfoRequestForPduSession *models.SliceInfoForPduSession `json:"slice-info-request-for-pdu-session,omitempty"`
+	SliceInfoRequestForPduSession *models.Nssf_NSSel_SliceInfoForPDUSession `json:"slice-info-request-for-pdu-session,omitempty"` //nolint:lll
 
 	HomePlmnId *models.PlmnId `json:"home-plmn-id,omitempty"`
 
