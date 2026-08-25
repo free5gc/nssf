@@ -43,6 +43,11 @@ func (ns *NrfService) buildNFProfile(context *nssf_context.NSSFContext) (
 	profile.Ipv4Addresses = []string{context.RegisterIPv4}
 	var services []models.Nrf_NFMgmt_NFService
 	for _, nfService := range context.NfService {
+		allowed, known := nssf_context.AllowedNfTypesForService(nfService.ServiceName)
+		if !known {
+			return profile, fmt.Errorf("no AllowedNfTypes policy for service %q", nfService.ServiceName)
+		}
+		nfService.AllowedNfTypes = allowed
 		services = append(services, nfService)
 	}
 	if len(services) > 0 {
