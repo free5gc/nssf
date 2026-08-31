@@ -76,7 +76,6 @@ type Configuration struct {
 	ServiceNameList          []models.Nrf_NFMgmt_ServiceName `yaml:"serviceNameList"`
 	NrfUri                   string                          `yaml:"nrfUri"`
 	NrfCertPem               string                          `yaml:"nrfCertPem,omitempty" valid:"optional"`
-	NrfNfInstanceId          string                          `yaml:"nrfNfInstanceId,omitempty" valid:"optional,uuidv4"`
 	SupportedPlmnList        []models.PlmnId                 `yaml:"supportedPlmnList,omitempty"`
 	SupportedNssaiInPlmnList []SupportedNssaiInPlmn          `yaml:"supportedNssaiInPlmnList"`
 	NsiList                  []NsiConfig                     `yaml:"nsiList,omitempty"`

@@ -99,7 +99,6 @@ func InitNssfContext() {
 		nssfContext.NrfUri = fmt.Sprintf("%s://%s:%d", nssfContext.UriScheme, "127.0.0.1", NRF_PORT)
 	}
 	nssfContext.NrfCertPem = nssfConfig.Configuration.NrfCertPem
-	nssfContext.NrfNfInstanceID = nssfConfig.Configuration.NrfNfInstanceId
 	nssfContext.SupportedPlmnList = nssfConfig.Configuration.SupportedPlmnList
 }
 
@@ -193,6 +192,7 @@ func (c *NSSFContext) tokenRequestForNFInstance(serviceName models.Nrf_NFMgmt_Se
 func (c *NSSFContext) SetOAuth2Required(required bool) error {
 	if !required {
 		c.OAuth2Required = false
+		c.NrfNfInstanceID = ""
 		return nil
 	}
 	if strings.TrimSpace(c.NrfCertPem) == "" {
@@ -201,9 +201,11 @@ func (c *NSSFContext) SetOAuth2Required(required bool) error {
 	if strings.TrimSpace(c.NrfUri) == "" {
 		return fmt.Errorf("OAuth2 enabled but NRF URI is empty")
 	}
-	if err := uuid.Validate(c.NrfNfInstanceID); err != nil {
-		return fmt.Errorf("OAuth2 enabled but trusted NRF instance ID is invalid: %w", err)
+	nrfNfInstanceID, err := oauth.NFInstanceIDFromCertificate(c.NrfCertPem)
+	if err != nil {
+		return fmt.Errorf("derive trusted NRF instance ID from certificate: %w", err)
 	}
+	c.NrfNfInstanceID = nrfNfInstanceID
 	c.OAuth2Required = true
 	return nil
 }
