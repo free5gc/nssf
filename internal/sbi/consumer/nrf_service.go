@@ -34,6 +34,11 @@ func (ns *NrfService) buildNFProfile(context *nssf_context.NSSFContext) (
 	profile.Ipv4Addresses = []string{context.RegisterIPv4}
 	var services []models.Nrf_NFMgmt_NFService
 	for _, nfService := range context.NfService {
+		allowed, known := nssf_context.AllowedNfTypesForService(nfService.ServiceName)
+		if !known {
+			return profile, fmt.Errorf("no AllowedNfTypes policy for service %q", nfService.ServiceName)
+		}
+		nfService.AllowedNfTypes = allowed
 		services = append(services, nfService)
 	}
 	if len(services) > 0 {
@@ -90,9 +95,8 @@ func (ns *NrfService) SendRegisterNFInstance(ctx context.Context, nssfCtx *nssf_
 					logger.MainLog.Infoln("OAuth2 setting receive from NRF:", oauth2)
 				}
 			}
-			nssf_context.GetSelf().OAuth2Required = oauth2
-			if oauth2 && nssf_context.GetSelf().NrfCertPem == "" {
-				logger.CfgLog.Error("OAuth2 enable but no nrfCertPem provided in config.")
+			if oauthErr := nssf_context.GetSelf().SetOAuth2Required(oauth2); oauthErr != nil {
+				return "", "", oauthErr
 			}
 			finish = true
 		}
@@ -105,8 +109,7 @@ func (ns *NrfService) SendDeregisterNFInstance(nfInstanceId string) (*models.Pro
 
 	var err error
 
-	ctx, pd, err := nssf_context.GetSelf().GetTokenCtx(
-		models.Nrf_NFMgmt_ServiceName_NNRF_NFM, models.Nrf_NFMgmt_NFType_NRF)
+	ctx, pd, err := nssf_context.GetSelf().GetTokenCtxForNRF(models.Nrf_NFMgmt_ServiceName_NNRF_NFM)
 	if err != nil {
 		return pd, err
 	}
