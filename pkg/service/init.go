@@ -37,6 +37,7 @@ type NssfApp struct {
 	metricsServer *metrics.Server
 	processor     *processor.Processor
 	consumer      *consumer.Consumer
+	registered    bool
 }
 
 var _ app.NssfApp = &NssfApp{}
@@ -58,7 +59,10 @@ func NewApp(ctx context.Context, cfg *factory.Config, tlsKeyLogPath string) (*Ns
 	processor := processor.NewProcessor(nssf)
 	nssf.processor = processor
 
-	consumer := consumer.NewConsumer(nssf)
+	consumer, err := consumer.NewConsumer(nssf)
+	if err != nil {
+		return nil, err
+	}
 	nssf.consumer = consumer
 
 	sbiServer := sbi.NewServer(nssf, tlsKeyLogPath)
@@ -155,11 +159,7 @@ func (a *NssfApp) SetReportCaller(reportCaller bool) {
 }
 
 func (a *NssfApp) registerToNrf(ctx context.Context) error {
-	nssfContext := a.nssfCtx
-
-	var err error
-	_, nssfContext.NfId, err = a.consumer.SendRegisterNFInstance(ctx, nssfContext)
-	if err != nil {
+	if err := a.consumer.SendRegisterNFInstance(ctx, true); err != nil {
 		return fmt.Errorf("failed to register NSSF to NRF: %s", err.Error())
 	}
 
@@ -167,6 +167,9 @@ func (a *NssfApp) registerToNrf(ctx context.Context) error {
 }
 
 func (a *NssfApp) deregisterFromNrf() {
+	if !a.registered {
+		return
+	}
 	problemDetails, err := a.consumer.SendDeregisterNFInstance(a.nssfCtx.NfId)
 	if problemDetails != nil {
 		logger.InitLog.Errorf("Deregister NF instance Failed Problem[%+v]", problemDetails)
@@ -179,6 +182,7 @@ func (a *NssfApp) deregisterFromNrf() {
 
 func (a *NssfApp) Start() {
 	err := a.registerToNrf(a.ctx)
+	a.registered = err == nil
 	if err != nil {
 		logger.MainLog.Errorf("register to NRF failed: %+v", err)
 	} else {
@@ -192,6 +196,11 @@ func (a *NssfApp) Start() {
 			logger.InitLog.Fatalf("panic: %v\n%s", p, string(debug.Stack()))
 		}
 	}()
+
+	if a.registered {
+		// Only a registered profile has something to keep alive.
+		a.consumer.StartHeartbeat(a.ctx, &a.wg)
+	}
 
 	a.sbiServer.Run(&a.wg)
 
@@ -216,6 +225,10 @@ func (a *NssfApp) Terminate() {
 
 func (a *NssfApp) terminateProcedure() {
 	logger.MainLog.Infof("Terminating NSSF...")
+
+	// no heartbeat PATCH or re-registration PUT may land after the deregistration
+	a.consumer.WaitHeartbeatStopped()
+
 	a.deregisterFromNrf()
 	a.sbiServer.Shutdown()
 	if a.metricsServer != nil {
