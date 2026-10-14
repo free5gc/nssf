@@ -12,6 +12,7 @@ import (
 	"runtime/debug"
 	"sync"
 
+	"github.com/free5gc/openapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 
@@ -42,6 +43,9 @@ type NssfApp struct {
 var _ app.NssfApp = &NssfApp{}
 
 func NewApp(ctx context.Context, cfg *factory.Config, tlsKeyLogPath string) (*NssfApp, error) {
+	if err := openapi.ConfigureHTTP2Clients(cfg.GetReadIdleTimeout(), cfg.GetPingTimeout()); err != nil {
+		return nil, err
+	}
 	nssf_context.InitNssfContext()
 
 	nssf := &NssfApp{
