@@ -12,7 +12,6 @@ import (
 	"runtime/debug"
 	"sync"
 
-	"github.com/free5gc/openapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 
@@ -23,6 +22,7 @@ import (
 	"github.com/free5gc/nssf/internal/sbi/processor"
 	"github.com/free5gc/nssf/pkg/app"
 	"github.com/free5gc/nssf/pkg/factory"
+	"github.com/free5gc/openapi"
 	"github.com/free5gc/util/metrics"
 	"github.com/free5gc/util/metrics/utils"
 )
@@ -73,7 +73,8 @@ func NewApp(ctx context.Context, cfg *factory.Config, tlsKeyLogPath string) (*Ns
 	if cfg.AreMetricsEnabled() {
 		var err error
 		if nssf.metricsServer, err = metrics.NewServer(
-			getInitMetrics(cfg, features, customMetrics), tlsKeyLogPath, logger.InitLog, cfg.GetIdleTimeout()); err != nil {
+			getInitMetrics(cfg, features, customMetrics), tlsKeyLogPath, logger.InitLog, cfg.GetIdleTimeout(),
+		); err != nil {
 			return nil, err
 		}
 	}
