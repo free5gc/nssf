@@ -95,7 +95,7 @@ func bindRouter(nssf app.NssfApp, router *gin.Engine, tlsKeyLogPath string) (*ht
 	sbiConfig := nssf.Config().Configuration.Sbi
 	bindAddr := fmt.Sprintf("%s:%d", sbiConfig.BindingIPv4, sbiConfig.Port)
 
-	return httpwrapper.NewHttp2Server(bindAddr, tlsKeyLogPath, router)
+	return httpwrapper.NewHttp2Server(bindAddr, tlsKeyLogPath, router, nssf.Config().GetIdleTimeout())
 }
 
 func newRouter(s *Server) *gin.Engine {
