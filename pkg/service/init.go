@@ -43,7 +43,7 @@ type NssfApp struct {
 var _ app.NssfApp = &NssfApp{}
 
 func NewApp(ctx context.Context, cfg *factory.Config, tlsKeyLogPath string) (*NssfApp, error) {
-	if err := openapi.ConfigureHTTP2Clients(cfg.GetReadIdleTimeout(), cfg.GetPingTimeout()); err != nil {
+	if err := openapi.ConfigureHTTP2Clients(cfg.GetReadIdleTimeout(), cfg.GetPingTimeout(), cfg.GetTLSVerify()); err != nil {
 		return nil, err
 	}
 	nssf_context.InitNssfContext()
