@@ -92,6 +92,10 @@ func (s *Server) NSSAIAvailabilityDelete(c *gin.Context) {
 		return
 	}
 
+	if !requireNSSAIResourceOwner(c, nfId) {
+		return
+	}
+
 	s.Processor().NssaiAvailabilityNfInstanceDelete(c, nfId)
 }
 
@@ -112,6 +116,9 @@ func (s *Server) NSSAIAvailabilityPatch(c *gin.Context) {
 		return
 	}
 
+	if !requireNSSAIResourceOwner(c, nfId) {
+		return
+	}
 	var patchDocument plugin.PatchDocument
 
 	requestBody, err := c.GetRawData()
@@ -167,6 +174,9 @@ func (s *Server) NSSAIAvailabilityPut(c *gin.Context) {
 		return
 	}
 
+	if !requireNSSAIResourceOwner(c, params.NfId) {
+		return
+	}
 	var nssaiAvailabilityInfo models.Nssf_NSSAIAvail_NssaiAvailabilityInfo
 	data, err := c.GetRawData()
 	if err != nil {
@@ -229,7 +239,14 @@ func (s *Server) NSSAIAvailabilityPost(c *gin.Context) {
 		return
 	}
 
-	s.Processor().NssaiAvailabilitySubscriptionCreate(c, createData)
+	callerID, ok := requireVerifiedCallerNFID(c)
+	if !ok {
+		return
+	}
+
+	s.Processor().NssaiAvailabilitySubscriptionCreate(
+		c, createData, callerID,
+	)
 }
 
 func (s *Server) NSSAIAvailabilityOptions(c *gin.Context) {
@@ -248,5 +265,54 @@ func (s *Server) NSSAIAvailabilityUnsubscribeDelete(c *gin.Context) {
 		return
 	}
 
-	s.Processor().NssaiAvailabilitySubscriptionUnsubscribe(c, subscriptionId)
+	callerID, ok := requireVerifiedCallerNFID(c)
+	if !ok {
+		return
+	}
+
+	s.Processor().NssaiAvailabilitySubscriptionUnsubscribe(
+		c, subscriptionId, callerID,
+	)
+}
+
+const verifiedNFIDContextKey = "nssfVerifiedCallerNfID"
+
+// requireNSSAIResourceOwner checks whether the authenticated
+// NF is allowed to modify the target NF's NSSAI availability.
+
+func requireNSSAIResourceOwner(c *gin.Context, nfID string) bool {
+	callerID, ok := requireVerifiedCallerNFID(c)
+	if !ok {
+		return false
+	}
+
+	if callerID != nfID {
+		problemDetails := &models.ProblemDetails{
+			Status: http.StatusForbidden,
+			Cause:  "NOT_AUTHORIZED",
+			Detail: "NF cannot modify another NF's NSSAI availability",
+		}
+
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
+		util.GinProblemJson(c, problemDetails)
+		c.Abort()
+		return false
+	}
+
+	return true
+}
+
+func requireVerifiedCallerNFID(c *gin.Context) (string, bool) {
+	value, exists := c.Get(verifiedNFIDContextKey)
+	callerID, ok := value.(string)
+
+	if !exists || !ok || callerID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Verified NF identity is required",
+		})
+		c.Abort()
+		return "", false
+	}
+
+	return callerID, true
 }

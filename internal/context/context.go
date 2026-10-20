@@ -46,7 +46,15 @@ func Init() {
 }
 
 type NFContext interface {
-	AuthorizationCheck(token string, serviceName models.Nrf_NFMgmt_ServiceName) error
+	AuthorizationCheck(
+		token string,
+		serviceName models.Nrf_NFMgmt_ServiceName,
+	) error
+
+	VerifiedCallerNFID(
+		authorization string,
+		serviceName models.Nrf_NFMgmt_ServiceName,
+	) (string, error)
 }
 
 var _ NFContext = &NSSFContext{}

@@ -32,6 +32,17 @@ func (m *mockNSSFContext) AuthorizationCheck(token string, serviceName models.Nr
 	return errors.New("invalid token")
 }
 
+func (m *mockNSSFContext) VerifiedCallerNFID(
+	token string,
+	serviceName models.Nrf_NFMgmt_ServiceName,
+) (string, error) {
+	if token == Valid {
+		return "11111111-1111-4111-8111-111111111111", nil
+	}
+
+	return "", errors.New("invalid NF identity")
+}
+
 func TestRouterAuthorizationCheck_Check(t *testing.T) {
 	// Mock gin.Context
 	w := httptest.NewRecorder()
@@ -93,5 +104,40 @@ func TestRouterAuthorizationCheck_Check(t *testing.T) {
 				t.Errorf("StatusCode should be %d, but got %d", tt.want.statusCode, w.Code)
 			}
 		})
+	}
+}
+
+func TestNSSAIAvailabilityMiddlewareVerifiedCaller(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	c.Request = httptest.NewRequestWithContext(
+		context.Background(),
+		http.MethodDelete,
+		"/nssai-availability/22222222-2222-4222-8222-222222222222",
+		nil,
+	)
+	c.Request.Header.Set("Authorization", Valid)
+
+	rac := util.NewRouterAuthorizationCheck(
+		models.Nrf_NFMgmt_ServiceName_NNSSF_NSSAIAVAILABILITY,
+	)
+
+	rac.Check(c, newMockNSSFContext())
+
+	if c.IsAborted() {
+		t.Fatal("valid caller was rejected")
+	}
+
+	callerID, exists := c.Get("nssfVerifiedCallerNfID")
+	if !exists {
+		t.Fatal("verified NF identity not found in Gin Context")
+	}
+
+	expected := "11111111-1111-4111-8111-111111111111"
+	if callerID != expected {
+		t.Errorf("expected caller %s, got %v", expected, callerID)
 	}
 }
