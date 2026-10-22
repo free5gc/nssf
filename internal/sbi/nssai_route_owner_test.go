@@ -112,9 +112,7 @@ func TestNSSAIRouteOwnerAuthorization(t *testing.T) {
 	}
 }
 
-type oauthDisabledTestCallerContext struct {
-	testCallerContext
-}
+type oauthDisabledTestCallerContext struct{}
 
 func (oauthDisabledTestCallerContext) IsOAuth2Required() bool {
 	return false

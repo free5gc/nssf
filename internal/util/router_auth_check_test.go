@@ -147,9 +147,7 @@ func TestNSSAIAvailabilityMiddlewareVerifiedCaller(t *testing.T) {
 	}
 }
 
-type oauthDisabledMockContext struct {
-	mockNSSFContext
-}
+type oauthDisabledMockContext struct{}
 
 func (oauthDisabledMockContext) IsOAuth2Required() bool {
 	return false
