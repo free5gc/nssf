@@ -46,6 +46,8 @@ func Init() {
 }
 
 type NFContext interface {
+	IsOAuth2Required() bool
+
 	AuthorizationCheck(
 		token string,
 		serviceName models.Nrf_NFMgmt_ServiceName,
@@ -156,6 +158,10 @@ func (c *NSSFContext) GetTokenCtx(serviceName models.Nrf_NFMgmt_ServiceName, tar
 	}
 	return oauth.GetTokenCtx(models.Nrf_NFMgmt_NFType_NSSF, targetNF,
 		c.NfId, c.NrfUri, string(serviceName))
+}
+
+func (c *NSSFContext) IsOAuth2Required() bool {
+	return c.OAuth2Required
 }
 
 func (c *NSSFContext) AuthorizationCheck(token string, serviceName models.Nrf_NFMgmt_ServiceName) error {

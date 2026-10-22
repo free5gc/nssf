@@ -281,6 +281,10 @@ const verifiedNFIDContextKey = "nssfVerifiedCallerNfID"
 // NF is allowed to modify the target NF's NSSAI availability.
 
 func requireNSSAIResourceOwner(c *gin.Context, nfID string) bool {
+	if c.GetBool("nssfSkipOwnershipCheck") {
+		return true
+	}
+
 	callerID, ok := requireVerifiedCallerNFID(c)
 	if !ok {
 		return false
@@ -303,13 +307,20 @@ func requireNSSAIResourceOwner(c *gin.Context, nfID string) bool {
 }
 
 func requireVerifiedCallerNFID(c *gin.Context) (string, bool) {
+	if c.GetBool("nssfSkipOwnershipCheck") {
+		return "", true
+	}
+
 	value, exists := c.Get(verifiedNFIDContextKey)
 	callerID, ok := value.(string)
 
 	if !exists || !ok || callerID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Verified NF identity is required",
-		})
+		problemDetails := &models.ProblemDetails{
+			Status: http.StatusUnauthorized,
+			Detail: "Verified NF identity is required",
+		}
+
+		util.GinProblemJson(c, problemDetails)
 		c.Abort()
 		return "", false
 	}

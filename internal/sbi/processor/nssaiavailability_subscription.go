@@ -93,10 +93,15 @@ func (p *Processor) NssaiAvailabilitySubscriptionUnsubscribe(
 	for i, subscription := range factory.NssfConfig.Subscriptions {
 		if subscription.SubscriptionId == subscriptionId {
 			// Only the subscription owner may delete it.
-			if subscription.OwnerNfId != callerNfID {
-				c.JSON(http.StatusForbidden, gin.H{
-					"error": "NF is not the subscription owner",
-				})
+			if callerNfID != "" && subscription.OwnerNfId != callerNfID {
+				problemDetails := &models.ProblemDetails{
+					Status: http.StatusForbidden,
+					Cause:  "NOT_AUTHORIZED",
+					Detail: "NF is not the subscription owner",
+				}
+
+				c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
+				util.GinProblemJson(c, problemDetails)
 				return
 			}
 			factory.NssfConfig.Subscriptions = append(

@@ -33,9 +33,11 @@ func (rac *RouterAuthorizationCheck) Check(
 			"RouterAuthorizationCheck: Unauthorized: %s",
 			err.Error(),
 		)
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Unauthorized",
-		})
+		problemDetails := &models.ProblemDetails{
+			Status: http.StatusUnauthorized,
+			Detail: "Unauthorized",
+		}
+		GinProblemJson(c, problemDetails)
 		c.Abort()
 		return
 	}
@@ -47,6 +49,11 @@ func (rac *RouterAuthorizationCheck) Check(
 		case http.MethodPut, http.MethodPatch,
 			http.MethodDelete, http.MethodPost:
 
+			if !nssfContext.IsOAuth2Required() {
+				c.Set("nssfSkipOwnershipCheck", true)
+				break
+			}
+
 			callerID, err := nssfContext.VerifiedCallerNFID(
 				token,
 				rac.serviceName,
@@ -56,9 +63,11 @@ func (rac *RouterAuthorizationCheck) Check(
 					"Failed to verify NF identity: %s",
 					err.Error(),
 				)
-				c.JSON(http.StatusUnauthorized, gin.H{
-					"error": "Verified NF identity required",
-				})
+				problemDetails := &models.ProblemDetails{
+					Status: http.StatusUnauthorized,
+					Detail: "Verified NF identity required",
+				}
+				GinProblemJson(c, problemDetails)
 				c.Abort()
 				return
 			}
