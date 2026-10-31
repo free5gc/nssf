@@ -104,6 +104,12 @@ func CheckSupportedSnssaiInPlmn(snssai models.Snssai, plmnId models.PlmnId) bool
 func CheckSupportedNssaiInPlmn(nssai any, plmnId models.PlmnId) bool {
 	factory.NssfConfig.RLock()
 	defer factory.NssfConfig.RUnlock()
+
+	return CheckSupportedNssaiInPlmnLocked(nssai, plmnId)
+}
+
+// CheckSupportedNssaiInPlmnLocked requires the caller to hold NssfConfig.Lock or RLock.
+func CheckSupportedNssaiInPlmnLocked(nssai any, plmnId models.PlmnId) bool {
 	for _, supportedNssaiInPlmn := range factory.NssfConfig.Configuration.SupportedNssaiInPlmnList {
 		if *supportedNssaiInPlmn.PlmnId == plmnId {
 			if n, ok := nssai.([]models.ExtSnssai); ok {
@@ -196,6 +202,8 @@ func CheckSupportedNssaiAvailabilityData(
 
 // Check whether S-NSSAI is supported or not by the AMF at UE's current TA
 func CheckSupportedSnssaiInAmfTa(snssai models.Snssai, nfId string, tai models.Tai) bool {
+	factory.NssfConfig.RLock()
+	defer factory.NssfConfig.RUnlock()
 	// Uncomment following lines if supported S-NSSAI lists of AMF Sets are independent of those of AMFs
 	// for _, amfSetConfig := range factory.NssfConfig.Configuration.AmfSetList {
 	//     if amfSetConfig.AmfList != nil && len(amfSetConfig.AmfList) != 0 && Contain(nfId, amfSetConfig.AmfList) {
@@ -309,6 +317,7 @@ func GetRestrictedSnssaiListFromConfig(tai models.Tai) []models.Nssf_NSSAIAvail_
 }
 
 // Get authorized NSSAI availability data of the given NF ID and TAI from configuration
+
 func AuthorizeOfAmfTaFromConfig(
 	nfId string, tai models.Tai,
 ) (models.Nssf_NSSAIAvail_AuthorizedNssaiAvailabilityData, error) {
@@ -316,17 +325,27 @@ func AuthorizeOfAmfTaFromConfig(
 	authorizedNssaiAvailabilityData.Tai = new(models.Tai)
 	*authorizedNssaiAvailabilityData.Tai = tai
 
+	factory.NssfConfig.RLock()
 	for _, amfConfig := range factory.NssfConfig.Configuration.AmfList {
 		if amfConfig.NfId == nfId {
 			for _, supportedNssaiAvailabilityData := range amfConfig.SupportedNssaiAvailabilityData {
 				if reflect.DeepEqual(*supportedNssaiAvailabilityData.Tai, tai) {
-					authorizedNssaiAvailabilityData.SupportedSnssaiList = supportedNssaiAvailabilityData.SupportedSnssaiList
+					authorizedNssaiAvailabilityData.SupportedSnssaiList = append(
+						[]models.ExtSnssai(nil),
+						supportedNssaiAvailabilityData.SupportedSnssaiList...,
+					)
+
+					factory.NssfConfig.RUnlock()
+
 					authorizedNssaiAvailabilityData.RestrictedSnssaiList = GetRestrictedSnssaiListFromConfig(tai)
 
 					// TODO: Sort the returned slice
 					return authorizedNssaiAvailabilityData, nil
 				}
 			}
+
+			factory.NssfConfig.RUnlock()
+
 			e, err1 := json.Marshal(tai)
 			if err1 != nil {
 				logger.UtilLog.Errorf("Marshal error in AuthorizeOfAmfTaFromConfig: %+v", err1)
@@ -335,6 +354,9 @@ func AuthorizeOfAmfTaFromConfig(
 			return authorizedNssaiAvailabilityData, err
 		}
 	}
+
+	factory.NssfConfig.RUnlock()
+
 	err := fmt.Errorf("no AMF configuration of %s", nfId)
 	return authorizedNssaiAvailabilityData, err
 }

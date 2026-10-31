@@ -7,6 +7,6 @@ import (
 )
 
 func GinProblemJson(c *gin.Context, problemDetails *models.ProblemDetails) {
+	c.Header("Content-Type", "application/problem+json")
 	c.JSON(int(problemDetails.Status), problemDetails)
-	c.Writer.Header().Set("Content-Type", "application/problem+json")
 }
