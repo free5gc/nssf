@@ -313,14 +313,16 @@ func (p *Processor) NssaiAvailabilityNfInstanceUpdate(
 
 	// Return authorized NSSAI availability information of updated TAI only
 	for _, s := range nssaiAvailabilityInfo.SupportedNssaiAvailabilityData {
-		authorizedNssaiAvailabilityData, err := util.AuthorizeOfAmfTaFromConfig(nfId, *s.Tai)
-		if err == nil {
-			response.AuthorizedNssaiAvailabilityData = append(
-				response.AuthorizedNssaiAvailabilityData,
-				authorizedNssaiAvailabilityData)
-		} else {
-			logger.NssaiavailLog.Warn(err)
-		}
+		tai := *s.Tai
+
+		response.AuthorizedNssaiAvailabilityData = append(
+			response.AuthorizedNssaiAvailabilityData,
+			models.Nssf_NSSAIAvail_AuthorizedNssaiAvailabilityData{
+				Tai:                  &tai,
+				SupportedSnssaiList:  s.SupportedSnssaiList,
+				RestrictedSnssaiList: util.GetRestrictedSnssaiListFromConfig(tai),
+			},
+		)
 	}
 
 	c.JSON(http.StatusOK, response)

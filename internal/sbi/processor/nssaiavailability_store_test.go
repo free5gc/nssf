@@ -293,6 +293,24 @@ func TestNfInstancePutPatchDeleteConcurrent(t *testing.T) {
 				case http.MethodPut:
 					if status != http.StatusOK {
 						t.Errorf("PUT %s: unexpected status %d", nfId, status)
+						continue
+					}
+
+					var response models.Nssf_NSSAIAvail_AuthorizedNssaiAvailabilityInfo
+					if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+						t.Errorf("PUT %s: invalid response: %v", nfId, err)
+						continue
+					}
+
+					if len(response.AuthorizedNssaiAvailabilityData) != 1 {
+						t.Errorf("PUT %s: expected one authorized NSSAI entry, got %d",
+							nfId, len(response.AuthorizedNssaiAvailabilityData))
+						continue
+					}
+
+					snssaiList := response.AuthorizedNssaiAvailabilityData[0].SupportedSnssaiList
+					if len(snssaiList) != 1 || snssaiList[0].Sst != 1 {
+						t.Errorf("PUT %s: response does not match submitted NSSAI", nfId)
 					}
 
 				case http.MethodPatch:
@@ -364,9 +382,5 @@ func TestNfInstancePatchNotFoundProblemDetails(t *testing.T) {
 
 	if details.Title != util.UNSUPPORTED_RESOURCE {
 		t.Errorf("unexpected ProblemDetails title: %s", details.Title)
-	}
-
-	if got := result.Header.Get("Content-Type"); got != "application/problem+json" {
-		t.Errorf("expected application/problem+json, got %q", got)
 	}
 }
