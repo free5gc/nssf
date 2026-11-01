@@ -1,6 +1,7 @@
 package processor_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -282,8 +283,8 @@ func TestNfInstancePutPatchDeleteConcurrent(t *testing.T) {
 				}
 
 				recorder := httptest.NewRecorder()
-				req := httptest.NewRequest(
-					method, "/test/"+nfId, nil,
+				req := httptest.NewRequestWithContext(
+					context.Background(), method, "/test/"+nfId, nil,
 				)
 
 				router.ServeHTTP(recorder, req)
@@ -365,7 +366,11 @@ func TestNfInstancePatchNotFoundProblemDetails(t *testing.T) {
 	p.NssaiAvailabilityNfInstancePatch(c, nil, "missing-amf")
 
 	result := recorder.Result()
-	defer result.Body.Close()
+	defer func() {
+		if err := result.Body.Close(); err != nil {
+			t.Errorf("failed to close response body: %v", err)
+		}
+	}()
 
 	if result.StatusCode != http.StatusNotFound {
 		t.Errorf("expected HTTP 404, got %d", result.StatusCode)
