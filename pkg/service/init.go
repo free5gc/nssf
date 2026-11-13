@@ -192,9 +192,9 @@ func (a *NssfApp) Start() {
 	a.registered = err == nil
 	if err != nil {
 		logger.MainLog.Errorf("register to NRF failed: %+v", err)
-	} else {
-		logger.MainLog.Infoln("register to NRF successfully")
+		return
 	}
+	logger.MainLog.Infoln("register to NRF successfully")
 
 	// Graceful deregister when panic
 	defer func() {

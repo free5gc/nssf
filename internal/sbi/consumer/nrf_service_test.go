@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"path/filepath"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -12,6 +13,7 @@ import (
 
 	nssf_context "github.com/free5gc/nssf/internal/context"
 	"github.com/free5gc/openapi"
+	"github.com/free5gc/openapi/oauth"
 	"github.com/free5gc/util/nfheartbeat"
 )
 
@@ -314,7 +316,21 @@ func TestSendRegisterNFInstance(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			consumer := newNrfTestConsumer(t)
+			if tt.applyOAuth2 && tt.wantOAuth2 {
+				const nrfInstanceID = "9f679b45-2cf0-4d5e-9a73-630baaf86142"
+				certPath := filepath.Join(t.TempDir(), "nrf.pem")
 
+				key, err := oauth.GenerateRSAKeyPair("", "")
+				if err != nil {
+					t.Fatalf("generate NRF key: %v", err)
+				}
+				if _, err := oauth.GenerateCertificate(
+					"NRF", nrfInstanceID, certPath, &key.PublicKey, nil, key,
+				); err != nil {
+					t.Fatalf("generate NRF certificate: %v", err)
+				}
+				consumer.Context().NrfCertPem = certPath
+			}
 			gock.New(testNrfUri).
 				Put(testNfIdPath).
 				Reply(tt.status).
