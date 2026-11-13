@@ -216,7 +216,8 @@ func (c *NSSFContext) AuthorizationCheck(token string, serviceName models.Nrf_NF
 		return nil
 	}
 
-	logger.UtilLog.Debugf("NSSFContext::AuthorizationCheck: token[%s] serviceName[%s]\n", token, serviceName)
+	logger.UtilLog.Debugf("NSSFContext::AuthorizationCheck: tokenPresent[%t] serviceName[%s]",
+		token != "", serviceName)
 	return oauth.VerifyOAuth(token, string(serviceName), oauth.AudiencePolicy{
 		NFInstanceID: c.NfId, NFType: models.Nrf_NFMgmt_NFType_NSSF,
 	}, c.NrfNfInstanceID, c.NrfCertPem)
