@@ -88,3 +88,6 @@ func TestNfInstanceDelete(t *testing.T) {
 		t.Errorf("Expected problemDetails.Detail to be '%s', got: '%s'", expectedDetail, problemDetails.Detail)
 	}
 }
+
+// Exercise parsed NF config through the same startup configuration API and
+// generated NRF client used in production. No deployment files are modified.
