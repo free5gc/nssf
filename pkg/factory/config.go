@@ -299,7 +299,6 @@ type MappingFromPlmnConfig struct {
 type Subscription struct {
 	SubscriptionId   string                                                  `yaml:"subscriptionId"`
 	SubscriptionData *models.Nssf_NSSAIAvail_NssfEventSubscriptionCreateData `yaml:"subscriptionData"`
-	OwnerNfId        string                                                  `yaml:"ownerNfId"`
 }
 
 func (c *Config) GetVersion() string {
