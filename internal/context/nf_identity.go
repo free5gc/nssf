@@ -67,21 +67,20 @@ func (c *NSSFContext) VerifiedCallerNFID(
 	}
 
 	// Reject tokens without a valid expiration timestamp.
-	if claims.Exp <= 0 {
+	if claims.ExpiresAt == nil || claims.ExpiresAt.Unix() <= 0 {
 		return "", errors.New("missing or invalid access token expiration")
 	}
 
-	// Exp is a Unix timestamp in seconds.
 	// The token must not be accepted at or after expiration.
-	if time.Now().Unix() >= int64(claims.Exp) {
+	if !time.Now().Before(claims.ExpiresAt.Time) {
 		return "", errors.New("access token has expired")
 	}
 
-	if strings.TrimSpace(claims.Sub) == "" {
+	if strings.TrimSpace(claims.Subject) == "" {
 		return "", errors.New(
 			"missing NF Instance ID in token subject",
 		)
 	}
 
-	return claims.Sub, nil
+	return claims.Subject, nil
 }
