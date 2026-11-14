@@ -46,17 +46,7 @@ func Init() {
 }
 
 type NFContext interface {
-	IsOAuth2Required() bool
-
-	AuthorizationCheck(
-		token string,
-		serviceName models.Nrf_NFMgmt_ServiceName,
-	) error
-
-	VerifiedCallerNFID(
-		authorization string,
-		serviceName models.Nrf_NFMgmt_ServiceName,
-	) (string, error)
+	AuthorizationCheck(token string, serviceName models.Nrf_NFMgmt_ServiceName) error
 }
 
 var _ NFContext = &NSSFContext{}
@@ -218,10 +208,6 @@ func (c *NSSFContext) SetOAuth2Required(required bool) error {
 	c.NrfNfInstanceID = nrfNfInstanceID
 	c.OAuth2Required = true
 	return nil
-}
-
-func (c *NSSFContext) IsOAuth2Required() bool {
-	return c.OAuth2Required
 }
 
 func (c *NSSFContext) AuthorizationCheck(token string, serviceName models.Nrf_NFMgmt_ServiceName) error {

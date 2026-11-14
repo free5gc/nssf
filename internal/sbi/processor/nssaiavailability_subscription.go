@@ -8,11 +8,12 @@ package processor
 
 import (
 	"fmt"
+	"math"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 
 	"github.com/free5gc/nssf/internal/logger"
 	"github.com/free5gc/nssf/internal/util"
@@ -21,28 +22,35 @@ import (
 	"github.com/free5gc/util/metrics/sbi"
 )
 
-// Create a new subscription with a UUID and add it to configuration.
-
+// Create a new subscription with an unused ID and add it to configuration
+// In this implementation, string converted from 32-bit integer is used as subscription ID
 func createSubscription(
 	createData models.Nssf_NSSAIAvail_NssfEventSubscriptionCreateData,
-	ownerNfID string,
 ) (factory.Subscription, error) {
 	var subscription factory.Subscription
-
+	var idx uint32 = 1
 	factory.NssfConfig.Lock()
 	defer factory.NssfConfig.Unlock()
+	for _, sub := range factory.NssfConfig.Subscriptions {
+		tempID, err := strconv.Atoi(sub.SubscriptionId)
+		if err != nil {
+			return subscription, err
+		}
+		if uint32(tempID) == idx {
+			if idx == math.MaxUint32 {
+				return subscription, fmt.Errorf("no available subscription ID")
+			}
+			idx++
+		} else {
+			break
+		}
+	}
 
-	// Generate a unique subscription ID.
-	subscription.SubscriptionId = uuid.NewString()
-	subscription.OwnerNfId = ownerNfID
-
+	subscription.SubscriptionId = strconv.Itoa(int(idx))
 	subscription.SubscriptionData = new(models.Nssf_NSSAIAvail_NssfEventSubscriptionCreateData)
 	*subscription.SubscriptionData = createData
 
-	factory.NssfConfig.Subscriptions = append(
-		factory.NssfConfig.Subscriptions,
-		subscription,
-	)
+	factory.NssfConfig.Subscriptions = append(factory.NssfConfig.Subscriptions, subscription)
 
 	return subscription, nil
 }
@@ -51,14 +59,13 @@ func createSubscription(
 func (p *Processor) NssaiAvailabilitySubscriptionCreate(
 	c *gin.Context,
 	createData models.Nssf_NSSAIAvail_NssfEventSubscriptionCreateData,
-	ownerNfID string,
 ) {
 	var (
 		response       = &models.Nssf_NSSAIAvail_NssfEventSubscriptionCreatedData{}
 		problemDetails *models.ProblemDetails
 	)
 
-	subscription, err := createSubscription(createData, ownerNfID)
+	subscription, err := createSubscription(createData)
 	if err != nil {
 		logger.NssaiavailLog.Warn(err)
 
@@ -82,47 +89,27 @@ func (p *Processor) NssaiAvailabilitySubscriptionCreate(
 	c.JSON(http.StatusOK, response)
 }
 
-func (p *Processor) NssaiAvailabilitySubscriptionUnsubscribe(
-	c *gin.Context,
-	subscriptionId string,
-	callerNfID string,
-) {
+func (p *Processor) NssaiAvailabilitySubscriptionUnsubscribe(c *gin.Context, subscriptionId string) {
+	var problemDetails *models.ProblemDetails
+
 	factory.NssfConfig.Lock()
 	defer factory.NssfConfig.Unlock()
-
 	for i, subscription := range factory.NssfConfig.Subscriptions {
 		if subscription.SubscriptionId == subscriptionId {
-			// Only the subscription owner may delete it.
-			if callerNfID != "" && subscription.OwnerNfId != callerNfID {
-				problemDetails := &models.ProblemDetails{
-					Status: http.StatusForbidden,
-					Cause:  "NOT_AUTHORIZED",
-					Detail: "NF is not the subscription owner",
-				}
-
-				c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Cause)
-				util.GinProblemJson(c, problemDetails)
-				return
-			}
-			factory.NssfConfig.Subscriptions = append(
-				factory.NssfConfig.Subscriptions[:i],
-				factory.NssfConfig.Subscriptions[i+1:]...,
-			)
+			factory.NssfConfig.Subscriptions = append(factory.NssfConfig.Subscriptions[:i],
+				factory.NssfConfig.Subscriptions[i+1:]...)
 
 			c.Status(http.StatusNoContent)
 			return
 		}
 	}
 
-	problemDetails := &models.ProblemDetails{
+	// No specific subscription ID exists
+	problemDetails = &models.ProblemDetails{
 		Title:  util.UNSUPPORTED_RESOURCE,
 		Status: http.StatusNotFound,
-		Detail: fmt.Sprintf(
-			"Subscription ID '%s' is not available",
-			subscriptionId,
-		),
+		Detail: fmt.Sprintf("Subscription ID '%s' is not available", subscriptionId),
 	}
-
 	c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Title)
 	util.GinProblemJson(c, problemDetails)
 }
