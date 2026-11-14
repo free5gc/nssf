@@ -83,5 +83,4 @@ func (c *NSSFContext) VerifiedCallerNFID(
 	}
 
 	return claims.Subject, nil
-
 }
