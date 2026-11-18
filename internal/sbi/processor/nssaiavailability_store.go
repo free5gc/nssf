@@ -25,7 +25,8 @@ import (
 )
 
 func validateSupportedNssaiAvailabilityDataList(
-	c *gin.Context, supportedNssaiAvailabilityData []models.Nssf_NSSAIAvail_SupportedNssaiAvailabilityData,
+	c *gin.Context,
+	supportedNssaiAvailabilityData []models.Nssf_NSSAIAvail_SupportedNssaiAvailabilityData,
 ) bool {
 	for _, s := range supportedNssaiAvailabilityData {
 		if s.Tai == nil || s.Tai.PlmnId == nil {
@@ -57,17 +58,21 @@ func validateSupportedNssaiAvailabilityDataList(
 
 func (p *Processor) NssaiAvailabilityNfInstanceDelete(c *gin.Context, nfId string) {
 	var problemDetails *models.ProblemDetails
+
+	factory.NssfConfig.Lock()
 	for i, amfConfig := range factory.NssfConfig.Configuration.AmfList {
 		if amfConfig.NfId == nfId {
 			factory.NssfConfig.Configuration.AmfList = append(
 				factory.NssfConfig.Configuration.AmfList[:i],
 				factory.NssfConfig.Configuration.AmfList[i+1:]...)
 
+			factory.NssfConfig.Unlock()
 			c.Status(http.StatusNoContent)
 			return
 		}
 	}
 
+	factory.NssfConfig.Unlock()
 	problemDetails = &models.ProblemDetails{
 		Title:  util.UNSUPPORTED_RESOURCE,
 		Status: http.StatusNotFound,
@@ -81,120 +86,181 @@ func (p *Processor) NssaiAvailabilityNfInstancePatch(
 	c *gin.Context,
 	nssaiAvailabilityUpdateInfo plugin.PatchDocument, nfId string,
 ) {
-	var (
-		response = &models.Nssf_NSSAIAvail_AuthorizedNssaiAvailabilityInfo{}
-		amfIdx   int
-		original []byte
-		hitAmf   bool
-	)
-	factory.NssfConfig.RLock()
-	for amfIdx, amfConfig := range factory.NssfConfig.Configuration.AmfList {
-		if amfConfig.NfId == nfId {
-			// Since json-patch package does not have idea of optional field of datatype,
-			// provide with null or empty value instead of omitting the field
-			temp := factory.NssfConfig.Configuration.AmfList[amfIdx].SupportedNssaiAvailabilityData
-			const dummyString string = "DUMMY"
-			for i := range temp {
-				for j := range temp[i].SupportedSnssaiList {
-					if temp[i].SupportedSnssaiList[j].Sd == "" {
-						temp[i].SupportedSnssaiList[j].Sd = dummyString
-					}
+	response := &models.Nssf_NSSAIAvail_AuthorizedNssaiAvailabilityInfo{}
+	var updatedSupportedNssaiAvailabilityData []models.Nssf_NSSAIAvail_SupportedNssaiAvailabilityData
+	var problemDetails *models.ProblemDetails
+
+	// Protect the entire read-modify-write operation.
+	func() {
+		factory.NssfConfig.Lock()
+		defer factory.NssfConfig.Unlock()
+
+		amfIdx := -1
+		for i, amfConfig := range factory.NssfConfig.Configuration.AmfList {
+			if amfConfig.NfId == nfId {
+				amfIdx = i
+				break
+			}
+		}
+
+		if amfIdx == -1 {
+			problemDetails = &models.ProblemDetails{
+				Title:  util.UNSUPPORTED_RESOURCE,
+				Status: http.StatusNotFound,
+				Detail: fmt.Sprintf("AMF ID '%s' does not exist", nfId),
+			}
+			return
+		}
+
+		// Make a copy to avoid modifying shared data during JSON processing.
+		data := factory.NssfConfig.Configuration.AmfList[amfIdx].SupportedNssaiAvailabilityData
+
+		var temp []models.Nssf_NSSAIAvail_SupportedNssaiAvailabilityData
+		if data != nil {
+			temp = make([]models.Nssf_NSSAIAvail_SupportedNssaiAvailabilityData, len(data))
+			copy(temp, data)
+		}
+
+		for i := range temp {
+			temp[i].SupportedSnssaiList = append(
+				[]models.ExtSnssai(nil),
+				data[i].SupportedSnssaiList...,
+			)
+		}
+
+		// Preserve the existing handling of optional SD fields.
+		const dummyString = "DUMMY"
+		for i := range temp {
+			for j := range temp[i].SupportedSnssaiList {
+				if temp[i].SupportedSnssaiList[j].Sd == "" {
+					temp[i].SupportedSnssaiList[j].Sd = dummyString
 				}
 			}
-			var err error
-			original, err = json.Marshal(temp)
-			if err != nil {
-				logger.NssaiavailLog.Errorf("Marshal error in NSSAIAvailabilityPatchProcedure: %+v", err)
+		}
+
+		original, err := json.Marshal(temp)
+		if err != nil {
+			logger.NssaiavailLog.Errorf(
+				"Marshal error in NSSAIAvailabilityPatchProcedure: %+v", err,
+			)
+			problemDetails = &models.ProblemDetails{
+				Title:  util.INTERNAL_ERROR,
+				Status: http.StatusInternalServerError,
+				Detail: "Failed to encode NSSAI availability data",
 			}
-			original = bytes.ReplaceAll(original, []byte(dummyString), []byte(""))
-
-			// original, _ = json.Marshal(factory.NssfConfig.Configuration.AmfList[amfIdx].SupportedNssaiAvailabilityData)
-
-			hitAmf = true
-			break
+			return
 		}
-	}
-	factory.NssfConfig.RUnlock()
-	if !hitAmf {
-		problemDetails := &models.ProblemDetails{
-			Title:  util.UNSUPPORTED_RESOURCE,
-			Status: http.StatusNotFound,
-			Detail: fmt.Sprintf("AMF ID '%s' does not exist", nfId),
-		}
-		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Title)
-		util.GinProblemJson(c, problemDetails)
-		return
-	}
+		original = bytes.ReplaceAll(original, []byte(dummyString), []byte(""))
 
-	// TODO: Check if returned HTTP status codes or problem details are proper when errors occur
-
-	// Provide JSON string with null or empty value in `Value` of `PatchItem`
-	for i, patchItem := range nssaiAvailabilityUpdateInfo {
-		if reflect.ValueOf(patchItem.Value).Kind() == reflect.Map {
-			_, exist := patchItem.Value.(map[string]interface{})["sst"]
-			_, notExist := patchItem.Value.(map[string]interface{})["sd"]
-			if exist && !notExist {
-				nssaiAvailabilityUpdateInfo[i].Value.(map[string]interface{})["sd"] = ""
+		// Preserve existing JSON Patch input processing.
+		for i, patchItem := range nssaiAvailabilityUpdateInfo {
+			if reflect.ValueOf(patchItem.Value).Kind() == reflect.Map {
+				_, exist := patchItem.Value.(map[string]interface{})["sst"]
+				_, notExist := patchItem.Value.(map[string]interface{})["sd"]
+				if exist && !notExist {
+					nssaiAvailabilityUpdateInfo[i].Value.(map[string]interface{})["sd"] = ""
+				}
 			}
 		}
-	}
-	patchJSON, err := json.Marshal(nssaiAvailabilityUpdateInfo)
-	if err != nil {
-		logger.NssaiavailLog.Errorf("Marshal error in NSSAIAvailabilityPatchProcedure: %+v", err)
-	}
 
-	patch, err := jsonpatch.DecodePatch(patchJSON)
-	if err != nil {
-		problemDetails := &models.ProblemDetails{
-			Title:  util.MALFORMED_REQUEST,
-			Status: http.StatusBadRequest,
-			Detail: err.Error(),
+		patchJSON, err := json.Marshal(nssaiAvailabilityUpdateInfo)
+		if err != nil {
+			logger.NssaiavailLog.Errorf(
+				"Marshal error in NSSAIAvailabilityPatchProcedure: %+v", err,
+			)
+			problemDetails = &models.ProblemDetails{
+				Title:  util.MALFORMED_REQUEST,
+				Status: http.StatusBadRequest,
+				Detail: err.Error(),
+			}
+			return
 		}
-		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Title)
+
+		patch, err := jsonpatch.DecodePatch(patchJSON)
+		if err != nil {
+			problemDetails = &models.ProblemDetails{
+				Title:  util.MALFORMED_REQUEST,
+				Status: http.StatusBadRequest,
+				Detail: err.Error(),
+			}
+			return
+		}
+
+		modified, err := patch.Apply(original)
+		if err != nil {
+			problemDetails = &models.ProblemDetails{
+				Title:  util.INVALID_REQUEST,
+				Status: http.StatusConflict,
+				Detail: err.Error(),
+			}
+			return
+		}
+
+		err = json.Unmarshal(modified, &updatedSupportedNssaiAvailabilityData)
+		if err != nil {
+			problemDetails = &models.ProblemDetails{
+				Title:  util.INVALID_REQUEST,
+				Status: http.StatusBadRequest,
+				Detail: err.Error(),
+			}
+			return
+		}
+
+		// Validate while holding the write lock.
+		// Use the lock-aware helper to avoid acquiring RLock again.
+		for _, s := range updatedSupportedNssaiAvailabilityData {
+			if s.Tai == nil || s.Tai.PlmnId == nil {
+				problemDetails = &models.ProblemDetails{
+					Title:  util.MANDATORY_IE_MISSING,
+					Status: http.StatusBadRequest,
+					Detail: "tai or tai.plmnId is missing in supportedNssaiAvailabilityData",
+				}
+				return
+			}
+
+			if !util.CheckSupportedNssaiInPlmnLocked(
+				s.SupportedSnssaiList, *s.Tai.PlmnId,
+			) {
+				problemDetails = &models.ProblemDetails{
+					Title:  util.UNSUPPORTED_RESOURCE,
+					Status: http.StatusForbidden,
+					Detail: "S-NSSAI in Requested NSSAI is not supported in PLMN",
+					Cause:  "SNSSAI_NOT_SUPPORTED",
+				}
+				return
+			}
+		}
+
+		// Commit the update before releasing the lock.
+		factory.NssfConfig.Configuration.AmfList[amfIdx].
+			SupportedNssaiAvailabilityData = updatedSupportedNssaiAvailabilityData
+	}()
+
+	// Send errors after releasing the lock.
+	if problemDetails != nil {
+		value := problemDetails.Title
+		if problemDetails.Cause != "" {
+			value = problemDetails.Cause
+		}
+		c.Set(sbi.IN_PB_DETAILS_CTX_STR, value)
 		util.GinProblemJson(c, problemDetails)
 		return
 	}
 
-	modified, err := patch.Apply(original)
-	if err != nil {
-		problemDetails := &models.ProblemDetails{
-			Title:  util.INVALID_REQUEST,
-			Status: http.StatusConflict,
-			Detail: err.Error(),
-		}
-		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Title)
-		util.GinProblemJson(c, problemDetails)
-		return
+	// Build the response from the data committed by this PATCH.
+	// A concurrent DELETE cannot change this request's response snapshot.
+	for _, s := range updatedSupportedNssaiAvailabilityData {
+		tai := *s.Tai
+
+		response.AuthorizedNssaiAvailabilityData = append(
+			response.AuthorizedNssaiAvailabilityData,
+			models.Nssf_NSSAIAvail_AuthorizedNssaiAvailabilityData{
+				Tai:                  &tai,
+				SupportedSnssaiList:  s.SupportedSnssaiList,
+				RestrictedSnssaiList: util.GetRestrictedSnssaiListFromConfig(tai),
+			},
+		)
 	}
-
-	var updatedSupportedNssaiAvailabilityData []models.Nssf_NSSAIAvail_SupportedNssaiAvailabilityData
-	err = json.Unmarshal(modified, &updatedSupportedNssaiAvailabilityData)
-	if err != nil {
-		problemDetails := &models.ProblemDetails{
-			Title:  util.INVALID_REQUEST,
-			Status: http.StatusBadRequest,
-			Detail: err.Error(),
-		}
-		c.Set(sbi.IN_PB_DETAILS_CTX_STR, problemDetails.Title)
-		util.GinProblemJson(c, problemDetails)
-		return
-	}
-
-	if !validateSupportedNssaiAvailabilityDataList(c, updatedSupportedNssaiAvailabilityData) {
-		return
-	}
-
-	factory.NssfConfig.Lock()
-	factory.NssfConfig.Configuration.AmfList[amfIdx].SupportedNssaiAvailabilityData = updatedSupportedNssaiAvailabilityData
-	factory.NssfConfig.Unlock()
-
-	// Return all authorized NSSAI availability information
-	response.AuthorizedNssaiAvailabilityData, err = util.AuthorizeOfAmfFromConfig(nfId)
-	if err != nil {
-		logger.NssaiavailLog.Errorf("util AuthorizeOfAmfFromConfig error in NSSAIAvailabilityPatchProcedure: %+v", err)
-	}
-
-	// TODO: Return authorized NSSAI availability information of updated TAI only
 
 	c.JSON(http.StatusOK, response)
 }
@@ -219,6 +285,7 @@ func (p *Processor) NssaiAvailabilityNfInstanceUpdate(
 	// Find AMF configuration of given NfId
 	// If found, then update the SupportedNssaiAvailabilityData
 	factory.NssfConfig.Lock()
+
 	for i, amfConfig := range factory.NssfConfig.Configuration.AmfList {
 		if amfConfig.NfId == nfId {
 			factory.NssfConfig.Configuration.AmfList[i].SupportedNssaiAvailabilityData = nssaiAvailabilityInfo.
@@ -228,33 +295,34 @@ func (p *Processor) NssaiAvailabilityNfInstanceUpdate(
 			break
 		}
 	}
-	factory.NssfConfig.Unlock()
-
 	// If no AMF record is found, create a new one
 	if !hitAmf {
 		var amfConfig factory.AmfConfig
 		amfConfig.NfId = nfId
 		amfConfig.SupportedNssaiAvailabilityData = nssaiAvailabilityInfo.SupportedNssaiAvailabilityData
-		factory.NssfConfig.Lock()
+
 		factory.NssfConfig.Configuration.AmfList = append(
 			factory.NssfConfig.Configuration.AmfList,
 			amfConfig)
-		factory.NssfConfig.Unlock()
 	}
+
+	factory.NssfConfig.Unlock()
 
 	// Return all authorized NSSAI availability information
 	// a.AuthorizedNssaiAvailabilityData, _ = authorizeOfAmfFromConfig(nfId)
 
 	// Return authorized NSSAI availability information of updated TAI only
 	for _, s := range nssaiAvailabilityInfo.SupportedNssaiAvailabilityData {
-		authorizedNssaiAvailabilityData, err := util.AuthorizeOfAmfTaFromConfig(nfId, *s.Tai)
-		if err == nil {
-			response.AuthorizedNssaiAvailabilityData = append(
-				response.AuthorizedNssaiAvailabilityData,
-				authorizedNssaiAvailabilityData)
-		} else {
-			logger.NssaiavailLog.Warn(err)
-		}
+		tai := *s.Tai
+
+		response.AuthorizedNssaiAvailabilityData = append(
+			response.AuthorizedNssaiAvailabilityData,
+			models.Nssf_NSSAIAvail_AuthorizedNssaiAvailabilityData{
+				Tai:                  &tai,
+				SupportedSnssaiList:  s.SupportedSnssaiList,
+				RestrictedSnssaiList: util.GetRestrictedSnssaiListFromConfig(tai),
+			},
+		)
 	}
 
 	c.JSON(http.StatusOK, response)
