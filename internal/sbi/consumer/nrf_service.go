@@ -18,6 +18,7 @@ import (
 	"github.com/free5gc/openapi/models"
 	"github.com/free5gc/openapi/nrf/NFMgmt"
 	"github.com/free5gc/util/nfheartbeat"
+	"github.com/free5gc/util/serviceuri"
 )
 
 const registerRetryInterval = 2 * time.Second
@@ -40,7 +41,10 @@ func (ns *NrfService) buildNFProfile(context *nssf_context.NSSFContext) (
 	profile.NfType = models.Nrf_NFMgmt_NFType_NSSF
 	profile.NfStatus = models.Nrf_NFMgmt_NFStatus_REGISTERED
 	profile.PlmnList = context.SupportedPlmnList
-	profile.Ipv4Addresses = []string{context.RegisterIPv4}
+	addr := serviceuri.NewAddressing(context.RegisterIPv4)
+	profile.Fqdn = addr.FQDN
+	profile.Ipv4Addresses = addr.IPv4Addresses
+	profile.Ipv6Addresses = addr.IPv6Addresses
 	var services []models.Nrf_NFMgmt_NFService
 	for _, nfService := range context.NfService {
 		allowed, known := nssf_context.AllowedNfTypesForService(nfService.ServiceName)
