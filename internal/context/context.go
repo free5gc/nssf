@@ -20,6 +20,7 @@ import (
 	"github.com/free5gc/nssf/pkg/factory"
 	"github.com/free5gc/openapi/models"
 	"github.com/free5gc/openapi/oauth"
+	"github.com/free5gc/util/serviceuri"
 )
 
 const NRF_PORT = 29510
@@ -117,6 +118,7 @@ func initNfService(serviceName []models.Nrf_NFMgmt_ServiceName, version string) 
 ) {
 	versionUri := "v" + strings.Split(version, ".")[0]
 	nfService = make(map[models.Nrf_NFMgmt_ServiceName]models.Nrf_NFMgmt_NFService)
+	addr := serviceuri.NewAddressing(nssfContext.RegisterIPv4)
 	for idx, name := range serviceName {
 		nfService[name] = models.Nrf_NFMgmt_NFService{
 			ServiceInstanceId: strconv.Itoa(idx),
@@ -129,22 +131,12 @@ func initNfService(serviceName []models.Nrf_NFMgmt_ServiceName, version string) 
 			},
 			Scheme:          nssfContext.UriScheme,
 			NfServiceStatus: models.Nrf_NFMgmt_NFServiceStatus_REGISTERED,
-			ApiPrefix:       GetIpv4Uri(),
-			IpEndPoints: []models.Nrf_NFMgmt_IpEndPoint{
-				{
-					Ipv4Address: nssfContext.RegisterIPv4,
-					Transport:   models.Nrf_NFMgmt_TransportProtocol_TCP,
-					Port:        int32(nssfContext.SBIPort),
-				},
-			},
+			Fqdn:            addr.FQDN,
+			IpEndPoints:     addr.IpEndPoints(int32(nssfContext.SBIPort)),
 		}
 	}
 
 	return
-}
-
-func GetIpv4Uri() string {
-	return fmt.Sprintf("%s://%s:%d", nssfContext.UriScheme, nssfContext.RegisterIPv4, nssfContext.SBIPort)
 }
 
 func GetSelf() *NSSFContext {
